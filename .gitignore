@@ -1,11 +1,14 @@
 # Gradle and build output. build/ also holds the decompiled Minecraft sources
 # that ModDevGradle produces (build/moddev/artifacts); they must never be committed.
-.gradle/
-build/
+# Anchored to the project roots: deeper, the same name may be a Java package.
+# checks/TrackedFilesCheck keeps the same list.
+/.gradle/
+/build/
+/checks/build/
 !gradle/wrapper/gradle-wrapper.jar
 
 # Game directories of the run configurations
-run/
+/run/
 
 # Decompiled or extracted Minecraft code, wherever it ends up
 **/net/minecraft/

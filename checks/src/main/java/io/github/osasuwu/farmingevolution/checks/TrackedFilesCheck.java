@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Fails when the git index holds build output or decompiled Minecraft sources.
@@ -12,8 +11,11 @@ import java.util.Set;
  * so it must not depend on anything outside the JDK.
  */
 public final class TrackedFilesCheck {
-    /** Directories of a Gradle project that hold build output; the decompiled game lands in build/. */
-    private static final Set<String> OUTPUT_DIRS = Set.of("build", ".gradle", "run");
+    /**
+     * Output directories of this build, the same ones .gitignore anchors;
+     * the decompiled game lands in build/. A new Gradle subproject adds its build/ here.
+     */
+    private static final List<String> OUTPUT_DIRS = List.of("build/", ".gradle/", "run/", "checks/build/");
 
     private TrackedFilesCheck() {
     }
@@ -33,13 +35,14 @@ public final class TrackedFilesCheck {
         if (normalized.endsWith("-sources.jar") || normalized.endsWith("-merged.jar")) {
             return true;
         }
+        for (String dir : OUTPUT_DIRS) {
+            if (normalized.startsWith(dir)) {
+                return true;
+            }
+        }
         String[] segments = normalized.split("/");
         // The last segment is the file name, never a directory.
         for (int i = 0; i < segments.length - 1; i++) {
-            // Root project or a direct subproject; deeper, the same name is a Java package.
-            if (i <= 1 && OUTPUT_DIRS.contains(segments[i])) {
-                return true;
-            }
             if (i + 1 < segments.length - 1) {
                 String pair = segments[i] + "/" + segments[i + 1];
                 if (pair.equals("net/minecraft") || pair.equals("com/mojang")) {

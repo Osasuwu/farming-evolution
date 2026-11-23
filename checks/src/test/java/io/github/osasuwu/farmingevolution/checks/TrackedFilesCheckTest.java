@@ -14,6 +14,8 @@ class TrackedFilesCheckTest {
                 "gradle/wrapper/gradle-wrapper.jar",
                 "src/main/java/io/github/osasuwu/farmingevolution/FarmingEvolution.java",
                 "src/main/java/io/github/osasuwu/farmingevolution/run/Runner.java",
+                "docs/build/pipeline.md",
+                "scripts/run/start.sh",
                 "docs/research/minecraft-builds.md")));
     }
 
