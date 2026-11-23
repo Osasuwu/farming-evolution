@@ -1,0 +1,165 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.148'
+}
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = mod_id
+}
+
+repositories {
+    mavenCentral()
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    runs {
+        client {
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        // Runs every registered GameTest on a headless server, then exits.
+        // The exit code is the number of failed required tests.
+        gameTestServer {
+            type = "gameTestServer"
+            gameDirectory = project.file('run/gametest')
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        // Dedicated server used by the check pipeline: boots in its own directory,
+        // receives "stop" on stdin and shuts down once startup is complete.
+        smokeServer {
+            server()
+            gameDirectory = project.file('run/smoke')
+            programArgument '--nogui'
+        }
+
+        configureEach {
+            logLevel = org.slf4j.event.Level.INFO
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+configurations {
+    // The check helpers, run by the pipeline tasks below.
+    checksRuntime {
+        canBeConsumed = false
+    }
+}
+
+dependencies {
+    checksRuntime project(':checks')
+}
+
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
+}
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+// ---------------------------------------------------------------------------
+// Check pipeline. One command runs everything: gradlew verify
+// ---------------------------------------------------------------------------
+
+var smokeDir = layout.projectDirectory.dir('run/smoke')
+var smokeLog = smokeDir.file('logs/latest.log')
+
+// The dedicated server refuses to start until the Minecraft EULA is accepted.
+// Acceptance is a person's decision, so the pipeline never writes eula=true itself.
+var checkEula = tasks.register('checkEula') {
+    group = 'verification'
+    description = 'Fails with instructions when the Minecraft EULA is not accepted for the smoke server.'
+    var eula = smokeDir.file('eula.txt').asFile
+    doLast {
+        // Read the way the server reads it: a properties file, value compared without case.
+        var properties = new Properties()
+        if (eula.isFile()) {
+            eula.withInputStream { properties.load(it) }
+        }
+        if (!'true'.equalsIgnoreCase(properties.getProperty('eula', '').trim())) {
+            throw new GradleException(
+                    "Minecraft EULA is not accepted for the smoke server.\n" +
+                    "Read https://aka.ms/MinecraftEULA and, if you agree, create ${eula} with the line: eula=true")
+        }
+    }
+}
+
+tasks.named('runSmokeServer') {
+    dependsOn checkEula
+    // "stop" is queued on the console and executed on the first server tick, i.e. after startup.
+    standardInput = new ByteArrayInputStream('stop\n'.getBytes('UTF-8'))
+    doFirst { smokeLog.asFile.delete() }
+}
+
+var scanSmokeLog = tasks.register('scanSmokeLog', JavaExec) {
+    group = 'verification'
+    description = 'Fails when the smoke server log shows a mod loading error or no completed startup.'
+    dependsOn 'runSmokeServer'
+    classpath = configurations.checksRuntime
+    mainClass = 'io.github.osasuwu.farmingevolution.checks.ServerLogScan'
+    args smokeLog.asFile.absolutePath
+}
+
+var checkTrackedFiles = tasks.register('checkTrackedFiles', JavaExec) {
+    group = 'verification'
+    description = 'Fails when git tracks build output or decompiled Minecraft sources.'
+    classpath = configurations.checksRuntime
+    mainClass = 'io.github.osasuwu.farmingevolution.checks.TrackedFilesCheck'
+    workingDir = projectDir
+}
+
+var installGitHooks = tasks.register('installGitHooks', Exec) {
+    group = 'verification'
+    description = 'Points git at the hooks kept in .githooks.'
+    commandLine 'git', 'config', 'core.hooksPath', '.githooks'
+}
+
+// Cheap checks first: a missing EULA or a forbidden file fails the command
+// before the minutes-long first build, and the hook is installed even then.
+checkEula.configure { mustRunAfter installGitHooks }
+checkTrackedFiles.configure { mustRunAfter checkEula }
+tasks.matching { it.name in ['createMinecraftArtifacts', 'compileJava', 'build', 'runGameTestServer'] }.configureEach {
+    mustRunAfter checkEula, checkTrackedFiles
+}
+tasks.named('runSmokeServer') { mustRunAfter 'runGameTestServer' }
+
+tasks.register('verify') {
+    group = 'verification'
+    description = 'The whole check pipeline: build, unit tests, GameTest, dedicated server boot with a log scan.'
+    dependsOn installGitHooks, checkEula, checkTrackedFiles, 'build', ':checks:build', 'runGameTestServer', scanSmokeLog
+}
