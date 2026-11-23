@@ -1,0 +1,6 @@
+#!/bin/sh
+# Rejects a commit whose index holds build output or decompiled Minecraft sources.
+# Installed by `gradlew verify` (git config core.hooksPath .githooks).
+# Runs the same check as the pipeline, as a single-file Java program: no Gradle start-up.
+cd "$(git rev-parse --show-toplevel)" || exit 1
+exec java checks/src/main/java/io/github/osasuwu/farmingevolution/checks/TrackedFilesCheck.java

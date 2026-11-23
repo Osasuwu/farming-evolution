@@ -1,0 +1,27 @@
+# Gradle and build output. build/ also holds the decompiled Minecraft sources
+# that ModDevGradle produces (build/moddev/artifacts); they must never be committed.
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Game directories of the run configurations
+run/
+
+# Decompiled or extracted Minecraft code, wherever it ends up
+**/net/minecraft/
+**/com/mojang/
+*-sources.jar
+*-merged.jar
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+bin/
+.vscode/
+.classpath
+.project
+.settings/
+.DS_Store

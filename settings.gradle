@@ -1,0 +1,14 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'farming-evolution'
+
+// Plain-Java helpers used by the check pipeline (no Minecraft on the classpath).
+include 'checks'
