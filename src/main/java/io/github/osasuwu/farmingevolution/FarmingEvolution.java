@@ -1,10 +1,19 @@
 package io.github.osasuwu.farmingevolution;
 
+import io.github.osasuwu.farmingevolution.breeding.Breeding;
 import io.github.osasuwu.farmingevolution.breeding.Individual;
+import io.github.osasuwu.farmingevolution.breeding.PackData;
 import io.github.osasuwu.farmingevolution.plant.GenomeCodec;
 import io.github.osasuwu.farmingevolution.plant.PlantBlock;
 import io.github.osasuwu.farmingevolution.plant.PlantBlockEntity;
+import io.github.osasuwu.farmingevolution.plant.Products;
 import io.github.osasuwu.farmingevolution.plant.RemovedPlants;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -38,8 +47,21 @@ public final class FarmingEvolution {
             DeferredRegister.create(NeoForgeRegistries.ATTACHMENT_TYPES, MOD_ID);
 
     /**
-     * Plant fibre: the product of the spinning-crop line. For now a plain item with no
-     * behaviour of its own, which is what the check pipeline sends through a Create machine.
+     * Pack data: species, alleles and varieties. Read once, when the mod is loaded, because
+     * the set of items follows from it; a fault in it stops the game here.
+     */
+    public static final PackData PACK = readPack();
+
+    /** The inheritance engine over {@link #PACK}. */
+    public static final Breeding BREEDING = new Breeding(PACK);
+
+    /** The product items of the varieties and species of {@link #PACK}. */
+    public static final Products PRODUCTS = new Products(PACK, ITEMS);
+
+    /**
+     * Plant fibre of the prototype: a plain item the check pipeline sends through a Create
+     * machine. No plant gives it any more, a harvest gives one of {@link #PRODUCTS}; the item
+     * stays until recipes take the products through a raw-material requirement (issue #47).
      */
     public static final DeferredItem<Item> FIBER = ITEMS.registerSimpleItem("fiber");
 
@@ -49,7 +71,7 @@ public final class FarmingEvolution {
      */
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<Individual>> GENOME =
             DATA_COMPONENTS.registerComponentType("genome", genome -> genome
-                    .persistent(GenomeCodec.INDIVIDUAL)
+                    .persistent(GenomeCodec.saved(BREEDING))
                     .networkSynchronized(ByteBufCodecs.fromCodecWithRegistries(GenomeCodec.INDIVIDUAL)));
 
     /**
@@ -82,5 +104,19 @@ public final class FarmingEvolution {
         BLOCK_ENTITIES.register(modBus);
         DATA_COMPONENTS.register(modBus);
         ATTACHMENTS.register(modBus);
+    }
+
+    private static PackData readPack() {
+        String path = "/" + MOD_ID + "/pack.json";
+        try (InputStream stream = FarmingEvolution.class.getResourceAsStream(path)) {
+            if (stream == null) {
+                throw new IllegalStateException("The mod has no pack data at " + path);
+            }
+            try (Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+                return PackData.parse(reader);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Pack data at " + path + " could not be read", e);
+        }
     }
 }

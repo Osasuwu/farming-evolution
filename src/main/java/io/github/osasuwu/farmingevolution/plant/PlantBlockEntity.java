@@ -65,7 +65,7 @@ public final class PlantBlockEntity extends BlockEntity {
         super.loadAdditional(tag, registries);
         genome = null;
         if (tag.contains(GENOME_TAG)) {
-            genome = GenomeCodec.INDIVIDUAL.parse(NbtOps.INSTANCE, tag.get(GENOME_TAG))
+            genome = GenomeCodec.saved(FarmingEvolution.BREEDING).parse(NbtOps.INSTANCE, tag.get(GENOME_TAG))
                     .resultOrPartial(error -> LOGGER.error("Unreadable genome of the plant at {}: {}", getBlockPos(), error))
                     .orElse(null);
         }

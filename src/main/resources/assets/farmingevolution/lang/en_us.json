@@ -1,5 +1,12 @@
 {
   "block.farmingevolution.crop": "Crop",
   "item.farmingevolution.fiber": "Fiber",
-  "item.farmingevolution.seeds": "Seeds"
+  "item.farmingevolution.fiber_flax_fiber": "Fiber Flax Fiber",
+  "item.farmingevolution.hemp_fiber": "Hemp Fiber",
+  "item.farmingevolution.long_hemp": "Long Hemp Fiber",
+  "item.farmingevolution.seeds": "Seeds",
+  "item.farmingevolution.select_hemp": "Select Hemp Fiber",
+  "item.farmingevolution.strong_flax": "Strong Flax Fiber",
+  "item.farmingevolution.strong_hemp": "Strong Hemp Fiber",
+  "item.farmingevolution.wild_flax_fiber": "Wild Flax Fiber"
 }

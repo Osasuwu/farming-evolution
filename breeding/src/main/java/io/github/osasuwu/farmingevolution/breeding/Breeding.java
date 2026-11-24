@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.random.RandomGenerator;
 
 /**
@@ -88,6 +89,84 @@ public final class Breeding {
         // PackData.parse refuses such varieties; this is pack data built by hand.
         throw new IllegalStateException("no narrowest variety among "
                 + fitting.stream().map(Variety::id).toList());
+    }
+
+    /**
+     * A genome read from a save, brought to what pack data describes now: the save may have
+     * been written under other pack data. Each replacement is reported in one line.
+     *
+     * <ul>
+     * <li>A species allele pack data does not know gives way to the other allele of the pair.
+     * When neither is known, the individual becomes the wild type of the first species of
+     * pack data: nothing in the save says which species it should be.
+     * <li>The chromosomes become those of the active species: one the species does not have is
+     * removed, a missing one is the wild one.
+     * <li>An allele its chromosome type does not have, or a trait value outside the range, is
+     * replaced with the wild allele of the active species.
+     * </ul>
+     *
+     * A known named allele is taken from pack data, so its dominance is the current one.
+     */
+    public Individual restore(Individual saved, Consumer<String> replaced) {
+        Chromosome savedSpecies = saved.genome().get(SPECIES);
+        Species active = savedSpecies == null ? null : knownSpecies(savedSpecies.active());
+        Species inactive = savedSpecies == null ? null : knownSpecies(savedSpecies.inactive());
+        if (active == null && inactive == null) {
+            if (data.species().isEmpty()) {
+                throw new IllegalStateException("pack data has no species");
+            }
+            Species first = data.species().values().iterator().next();
+            replaced.accept(SPECIES + ": " + (savedSpecies == null ? "missing"
+                    : "unknown species " + text(savedSpecies.active()) + " and " + text(savedSpecies.inactive()))
+                    + ", replaced with wild " + first.id());
+            return wild(first.id(), saved.sex());
+        }
+        if (active == null || inactive == null) {
+            Species known = active == null ? inactive : active;
+            replaced.accept(SPECIES + ": unknown species "
+                    + text(active == null ? savedSpecies.active() : savedSpecies.inactive())
+                    + ", replaced with " + known.id());
+            active = known;
+            inactive = known;
+        }
+        Map<String, Chromosome> genome = new LinkedHashMap<>();
+        genome.put(SPECIES, new Chromosome(active.allele(), inactive.allele()));
+        for (String id : saved.genome().keySet()) {
+            if (!id.equals(SPECIES) && !active.wild().containsKey(id)) {
+                replaced.accept(id + ": " + active.id() + " has no such chromosome, removed");
+            }
+        }
+        for (Map.Entry<String, Allele> wild : active.wild().entrySet()) {
+            String id = wild.getKey();
+            String wildType = ", replaced with " + text(wild.getValue()) + " of wild " + active.id();
+            Chromosome chromosome = saved.genome().get(id);
+            if (chromosome == null) {
+                replaced.accept(id + ": missing" + wildType);
+                genome.put(id, Chromosome.pure(wild.getValue()));
+                continue;
+            }
+            List<Allele> alleles = new ArrayList<>();
+            for (Allele allele : List.of(chromosome.active(), chromosome.inactive())) {
+                try {
+                    alleles.add(data.chromosomes().get(id).allele(text(allele)));
+                } catch (IllegalArgumentException e) {
+                    replaced.accept(id + ": " + e.getMessage() + wildType);
+                    alleles.add(wild.getValue());
+                }
+            }
+            genome.put(id, new Chromosome(alleles.get(0), alleles.get(1)));
+        }
+        return new Individual(saved.sex(), genome);
+    }
+
+    /** The species a species allele names, null when pack data has none. */
+    private Species knownSpecies(Allele allele) {
+        return allele instanceof Allele.Named named ? data.species().get(named.id()) : null;
+    }
+
+    /** An allele the way pack data writes it. */
+    private static String text(Allele allele) {
+        return allele instanceof Allele.Named named ? named.id() : String.valueOf(((Allele.Numeric) allele).value());
     }
 
     /** The allele of one chromosome a gamete may carry, mutations counted in. */

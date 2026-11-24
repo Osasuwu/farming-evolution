@@ -1,0 +1,17 @@
+{
+  "chromosomes": [
+    {"id": "fiber_strength", "kind": "trait", "min": 1, "max": 10, "shift_chance": 0.2},
+    {"id": "fiber_length", "kind": "trait", "min": 1, "max": 10, "shift_chance": 0.2}
+  ],
+  "species": [
+    {"id": "wild_flax", "wild": {"fiber_strength": 2}},
+    {"id": "fiber_flax", "dominant": true, "wild": {"fiber_strength": 5}},
+    {"id": "hemp", "wild": {"fiber_strength": 3, "fiber_length": 3}}
+  ],
+  "varieties": [
+    {"id": "strong_flax", "species": "fiber_flax", "thresholds": {"fiber_strength": 7}},
+    {"id": "strong_hemp", "species": "hemp", "thresholds": {"fiber_strength": 7}},
+    {"id": "long_hemp", "species": "hemp", "thresholds": {"fiber_length": 7}},
+    {"id": "select_hemp", "species": "hemp", "thresholds": {"fiber_strength": 7, "fiber_length": 7}}
+  ]
+}
