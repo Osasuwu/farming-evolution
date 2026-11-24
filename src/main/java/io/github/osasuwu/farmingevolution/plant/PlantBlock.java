@@ -44,7 +44,7 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
      * hand and a machine alike. A plant without a genome has no species and gives no product.
      *
      * <p>The seeds of a ripe plant are its offspring: each seed is one cross of the plant's
-     * {@link PlantBlockEntity#parents() parents}, the plant with itself (selection) or with the
+     * {@link PlantBlockEntity#parents parents}, the plant with itself (selection) or with the
      * pollen the analyzer put on it (crossing), in the climate of the place where the plant
      * grew, so its traits may move off the parents'. An unripe plant gives back the seed it
      * grew from unchanged.
@@ -57,7 +57,7 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
             return loot;
         }
         Individual genome = plant.genome().get();
-        PlantBlockEntity.Parents parents = plant.parents().orElseThrow();
+        PlantBlockEntity.Parents parents = plant.parents(params.getLevel()).orElseThrow();
         Random random = new Random(params.getLevel().random.nextLong());
         List<ItemStack> drops = new ArrayList<>();
         for (ItemStack stack : loot) {

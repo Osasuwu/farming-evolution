@@ -50,7 +50,7 @@ public final class AnalyzerItem extends Item {
             return InteractionResult.sidedSuccess(level.isClientSide());
         }
         ItemStack analyzer = context.getItemInHand();
-        Optional<PlantBlockEntity.Parents> parents = plant.parents();
+        Optional<PlantBlockEntity.Parents> parents = plant.parents(level);
         if (parents.isEmpty()) {
             send(player, List.of(Analysis.text("no_genome", "This plant has no genome: it gives no product and no offspring.")));
             return InteractionResult.CONSUME;
@@ -62,12 +62,12 @@ public final class AnalyzerItem extends Item {
             analyzer.set(FarmingEvolution.POLLEN, genome);
             lines.add(Analysis.text("took", "Took the pollen of %s", Analysis.brief(genome)));
         } else if (player.isShiftKeyDown()) {
-            PlantBlockEntity.Parents pair = PlantBlockEntity.Parents.of(genome, pollen, plant.environment());
+            PlantBlockEntity.Parents pair = PlantBlockEntity.Parents.of(genome, pollen, plant.environment(level));
             try {
                 pair.odds();
                 plant.setPollen(pollen);
                 lines.add(Analysis.text("pollinate", "Pollinated with %s", Analysis.brief(pollen)));
-                lines.addAll(Analysis.odds("seeds", "Odds of the seeds of this plant:", plant.parents().orElseThrow().odds()));
+                lines.addAll(Analysis.odds("seeds", "Odds of the seeds of this plant:", plant.parents(level).orElseThrow().odds()));
             } catch (IllegalArgumentException e) {
                 lines.add(refusal(e));
             }
@@ -76,7 +76,7 @@ public final class AnalyzerItem extends Item {
             lines.add(Analysis.pollinatedBy(parents.get()));
             lines.addAll(Analysis.odds("seeds", "Odds of the seeds of this plant:", parents.get().odds()));
             if (pollen != null && !plant.pollen().filter(pollen::equals).isPresent()) {
-                lines.addAll(withPollen(genome, pollen, plant.environment()));
+                lines.addAll(withPollen(genome, pollen, plant.environment(level)));
             }
         }
         send(player, lines);

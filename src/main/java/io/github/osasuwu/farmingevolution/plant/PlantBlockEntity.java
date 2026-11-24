@@ -14,6 +14,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.slf4j.Logger;
@@ -77,11 +78,11 @@ public final class PlantBlockEntity extends BlockEntity {
      * cross: the plant first, then its pollen, or the plant itself when it has none or when
      * the engine cannot cross the two (pack data changed since the pollination).
      */
-    public Optional<Parents> parents() {
-        if (genome == null || level == null) {
+    public Optional<Parents> parents(LevelReader level) {
+        if (genome == null) {
             return Optional.empty();
         }
-        Environment environment = environment();
+        Environment environment = environment(level);
         if (pollen != null) {
             Parents pair = Parents.of(genome, pollen, environment);
             try {
@@ -95,8 +96,12 @@ public final class PlantBlockEntity extends BlockEntity {
         return Optional.of(Parents.of(genome, genome, environment));
     }
 
-    /** The conditions any cross of this plant happens under: the climate of its place. */
-    public Environment environment() {
+    /**
+     * The conditions any cross of this plant happens under: the climate of its place in the
+     * level. The level is given, not read from the block entity, because a harvest may ask for
+     * the drops of a block entity that is not placed in a level.
+     */
+    public Environment environment(LevelReader level) {
         return PlantBlock.environmentAt(level, getBlockPos());
     }
 
