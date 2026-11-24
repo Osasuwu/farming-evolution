@@ -1,6 +1,7 @@
 package io.github.osasuwu.farmingevolution.checks;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -76,18 +77,23 @@ public final class ReviewVerdict {
         return problems;
     }
 
-    public static void main(String[] args) throws IOException {
-        Path verdict = Path.of(args[0]);
+    /** The process exit code for a verdict file: 0 only for a clean review. */
+    static int run(Path verdict, PrintStream out) throws IOException {
         if (!Files.isRegularFile(verdict)) {
-            System.err.println("Review verdict not found: " + verdict);
-            System.exit(1);
+            out.println("Review verdict not found: " + verdict);
+            return 1;
         }
         List<String> problems = problems(Files.readAllLines(verdict, StandardCharsets.UTF_8));
         if (!problems.isEmpty()) {
-            System.err.println("Review does not pass (" + verdict + "):");
-            problems.forEach(problem -> System.err.println("  " + problem));
-            System.exit(1);
+            out.println("Review does not pass (" + verdict + "):");
+            problems.forEach(problem -> out.println("  " + problem));
+            return 1;
         }
-        System.out.println("Review is clean: " + verdict);
+        out.println("Review is clean: " + verdict);
+        return 0;
+    }
+
+    public static void main(String[] args) throws IOException {
+        System.exit(run(Path.of(args[0]), System.err));
     }
 }

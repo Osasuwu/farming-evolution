@@ -1,8 +1,11 @@
 package io.github.osasuwu.farmingevolution.checks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,6 +15,7 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class ReviewVerdictTest {
     @Test
@@ -77,6 +81,26 @@ class ReviewVerdictTest {
     void proseBesideTheVerdictFails() {
         assertEquals(List.of("unexpected line: Looks good to me."),
                 ReviewVerdict.problems(List.of("verdict: clean", "Looks good to me.")));
+    }
+
+    /** The exit code is what the CI job turns into the check result. */
+    @Test
+    void cleanFileExitsZero(@TempDir Path dir) throws IOException {
+        Path file = Files.writeString(dir.resolve("verdict.txt"), "verdict: clean\n");
+        assertEquals(0, ReviewVerdict.run(file, new PrintStream(new ByteArrayOutputStream())));
+    }
+
+    @Test
+    void fileWithProblemsExitsOneAndPrintsThem(@TempDir Path dir) throws IOException {
+        Path file = Files.writeString(dir.resolve("verdict.txt"), "unreviewed\n");
+        ByteArrayOutputStream printed = new ByteArrayOutputStream();
+        assertEquals(1, ReviewVerdict.run(file, new PrintStream(printed, true, StandardCharsets.UTF_8)));
+        assertTrue(printed.toString(StandardCharsets.UTF_8).contains("no verdict: the first line is \"unreviewed\""));
+    }
+
+    @Test
+    void missingFileExitsOne(@TempDir Path dir) throws IOException {
+        assertEquals(1, ReviewVerdict.run(dir.resolve("absent.txt"), new PrintStream(new ByteArrayOutputStream())));
     }
 
     /** REVIEW.md tells the reviewer which classes exist; the validator must accept exactly those. */
