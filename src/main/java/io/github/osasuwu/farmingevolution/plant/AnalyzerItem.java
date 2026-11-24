@@ -6,6 +6,7 @@ import io.github.osasuwu.farmingevolution.breeding.Individual;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import javax.annotation.Nullable;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -56,7 +57,7 @@ public final class AnalyzerItem extends Item {
             return InteractionResult.CONSUME;
         }
         Individual genome = parents.get().first();
-        Individual pollen = analyzer.get(FarmingEvolution.POLLEN);
+        Individual pollen = restored(analyzer.get(FarmingEvolution.POLLEN));
         List<Component> lines = new ArrayList<>();
         if (player.isShiftKeyDown() && pollen == null) {
             analyzer.set(FarmingEvolution.POLLEN, genome);
@@ -87,8 +88,8 @@ public final class AnalyzerItem extends Item {
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack analyzer = player.getItemInHand(hand);
         ItemStack other = player.getItemInHand(hand == InteractionHand.MAIN_HAND ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND);
-        Individual seed = other.is(FarmingEvolution.SEEDS) ? other.get(FarmingEvolution.GENOME) : null;
-        Individual pollen = analyzer.get(FarmingEvolution.POLLEN);
+        Individual seed = other.is(FarmingEvolution.SEEDS) ? restored(other.get(FarmingEvolution.GENOME)) : null;
+        Individual pollen = restored(analyzer.get(FarmingEvolution.POLLEN));
         boolean drop = player.isShiftKeyDown() && pollen != null;
         if (!drop && seed == null) {
             return InteractionResultHolder.pass(analyzer);
@@ -118,7 +119,7 @@ public final class AnalyzerItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        Individual pollen = stack.get(FarmingEvolution.POLLEN);
+        Individual pollen = restored(stack.get(FarmingEvolution.POLLEN));
         if (pollen != null) {
             tooltip.add(Analysis.text("tooltip", "Pollen: %s", Analysis.brief(pollen)));
         }
@@ -136,6 +137,15 @@ public final class AnalyzerItem extends Item {
         } catch (IllegalArgumentException e) {
             return List.of(refusal(e));
         }
+    }
+
+    /**
+     * The genome brought up to the current pack data, as {@link PlantBlockEntity.Parents#of}
+     * does for a cross, so what is shown is what the odds are computed from. Null stays null.
+     */
+    @Nullable
+    private static Individual restored(@Nullable Individual genome) {
+        return genome == null ? null : FarmingEvolution.BREEDING.restore(genome, replaced -> { });
     }
 
     private static Component refusal(IllegalArgumentException e) {
