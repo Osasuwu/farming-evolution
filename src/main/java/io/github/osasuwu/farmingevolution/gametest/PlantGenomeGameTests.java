@@ -57,7 +57,7 @@ public final class PlantGenomeGameTests {
      * harvester on its side, and the harvester sweeps through a ripe plant grown from a
      * seed with a genome. The harvester takes the drops, removes the block and puts a
      * young plant in its place: that plant must have the genome of the harvested one, and
-     * so must the seed the harvester drops.
+     * the seed the harvester drops must be of its species.
      */
     @GameTest(template = "empty", timeoutTicks = 600)
     public static void harvesterReplantsPlantWithItsGenome(GameTestHelper helper) {
@@ -100,9 +100,12 @@ public final class PlantGenomeGameTests {
                     .getEntitiesOfClass(ItemEntity.class, new AABB(helper.absolutePos(PLANT)).inflate(3))
                     .stream().map(ItemEntity::getItem).toList();
             List<ItemStack> seeds = drops.stream().filter(stack -> stack.is(FarmingEvolution.SEEDS)).toList();
-            if (seeds.size() != 1 || seeds.get(0).getCount() != 1
-                    || !genome.equals(seeds.get(0).get(FarmingEvolution.GENOME))) {
-                throw new GameTestAssertException("Expected 1 dropped seed with the genome of the plant, got " + drops);
+            // The seed of a ripe plant may be its offspring (CONCEPT.md, "Хранение генома"):
+            // of its genome, only the species is the plant's for certain.
+            Individual seedGenome = seeds.size() == 1 && seeds.get(0).getCount() == 1
+                    ? seeds.get(0).get(FarmingEvolution.GENOME) : null;
+            if (seedGenome == null || !seedGenome.species().equals(genome.species())) {
+                throw new GameTestAssertException("Expected 1 dropped seed with the species of the plant, got " + drops);
             }
             int products = drops.stream().filter(stack -> !stack.is(FarmingEvolution.SEEDS)).mapToInt(ItemStack::getCount).sum();
             if (products != 1) {
