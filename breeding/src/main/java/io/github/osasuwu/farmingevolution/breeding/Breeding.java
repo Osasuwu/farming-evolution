@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.random.RandomGenerator;
 
@@ -62,6 +63,31 @@ public final class Breeding {
                     Distribution.combine(carried(fromFirst, type), carried(fromSecond, type), Breeding::pairing));
         }
         return new CrossOdds(chromosomes, sexes(species));
+    }
+
+    /**
+     * The variety whose product the individual gives: of the varieties of its species it fits,
+     * the narrowest one, whose region lies inside the regions of all the others. Empty when it
+     * fits none: the product is then the species' product of no variety.
+     */
+    public Optional<Variety> variety(Individual individual) {
+        List<Variety> fitting = new ArrayList<>();
+        for (Variety variety : data.varieties().values()) {
+            if (variety.fits(individual)) {
+                fitting.add(variety);
+            }
+        }
+        for (Variety variety : fitting) {
+            if (fitting.stream().allMatch(variety::inside)) {
+                return Optional.of(variety);
+            }
+        }
+        if (fitting.isEmpty()) {
+            return Optional.empty();
+        }
+        // PackData.parse refuses such varieties; this is pack data built by hand.
+        throw new IllegalStateException("no narrowest variety among "
+                + fitting.stream().map(Variety::id).toList());
     }
 
     /** The allele of one chromosome a gamete may carry, mutations counted in. */
