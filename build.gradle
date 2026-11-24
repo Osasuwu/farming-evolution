@@ -226,3 +226,6 @@ tasks.register('verify') {
     description = 'The whole check pipeline: build, unit tests, GameTest, dedicated server boot with a log scan.'
     dependsOn installGitHooks, checkEula, checkTrackedFiles, 'build', ':checks:build', ':breeding:build', 'runGameTestServer', scanSmokeLog
 }
+
+// The breeding simulator (checks/build.gradle) is one more stage of the pipeline.
+tasks.named('verify') { dependsOn ':checks:simulateBreeding' }

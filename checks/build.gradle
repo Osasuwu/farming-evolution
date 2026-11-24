@@ -9,6 +9,10 @@ repositories {
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 dependencies {
+    // The breeding simulator runs the inheritance engine and reads its scenario as JSON.
+    implementation project(':breeding')
+    implementation 'com.google.code.gson:gson:2.10.1'
+
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -20,4 +24,14 @@ tasks.withType(Test).configureEach {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+// A stage of the check pipeline (gradlew verify): breeds lines without the game and fails
+// when a variety is out of reach of a selection method. The numbers live in the scenario file.
+tasks.register('simulateBreeding', JavaExec) {
+    group = 'verification'
+    description = 'Reports generations and game time to every variety by every selection method; fails when one is out of reach.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'io.github.osasuwu.farmingevolution.checks.BreedingSimulation'
+    args layout.projectDirectory.file('breeding-simulation.json').asFile.absolutePath
 }
