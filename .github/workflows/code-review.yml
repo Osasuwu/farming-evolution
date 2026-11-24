@@ -171,6 +171,11 @@ jobs:
             # not a boundary. The read-only job token and the env scrub above
             # bound what leaves the runner. The verdict grant is absolute
             # (`//` after expansion): `./` is cwd-relative.
+            # `--permission-mode default` makes that list strict: the action
+            # otherwise starts the reviewer in auto mode, where a safety review
+            # decides instead of these rules and denied both `gh pr view` and
+            # the verdict edit (#36; the action's docs/usage.md, "Permission Mode").
+            --permission-mode default
             --allowed-tools "Read,Grep,Glob,Edit(/${{ github.workspace }}/.review/verdict.txt),Bash(git log:*),Bash(git show:*),Bash(git diff:*),Bash(git blame:*),Bash(git status:*),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git merge-base:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr list:*),Bash(gh pr checks:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(wc:*),Bash(head:*),Bash(tail:*),Bash(cat:*),Bash(nl:*)"
             --disallowed-tools "Bash(gh pr merge:*)" "Bash(gh pr close:*)" "Bash(gh pr edit:*)" "Bash(gh pr reopen:*)" "Bash(gh pr review:*)" "Bash(gh pr ready:*)" "Bash(gh pr create:*)" "Bash(gh pr comment:*)" "Bash(gh issue create:*)" "Bash(gh issue edit:*)" "Bash(gh issue close:*)" "Bash(gh issue reopen:*)" "Bash(gh issue comment:*)" "Bash(git push:*)" "Bash(git commit:*)" "Bash(git merge:*)" "Bash(git reset:*)" "Bash(git rebase:*)" "Bash(git cherry-pick:*)" "Bash(git stash:*)" "Bash(git clean:*)" "Bash(git rm:*)" "Bash(git mv:*)" "Bash(git apply:*)" "Bash(git am:*)" "Bash(git checkout:*)" "Bash(git switch:*)" "Bash(git restore:*)" "Bash(git *--ou*)"
 
