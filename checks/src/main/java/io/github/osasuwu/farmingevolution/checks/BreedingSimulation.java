@@ -9,6 +9,7 @@ import io.github.osasuwu.farmingevolution.breeding.Chromosome;
 import io.github.osasuwu.farmingevolution.breeding.Environment;
 import io.github.osasuwu.farmingevolution.breeding.Individual;
 import io.github.osasuwu.farmingevolution.breeding.PackData;
+import io.github.osasuwu.farmingevolution.breeding.Requirement;
 import io.github.osasuwu.farmingevolution.breeding.Sex;
 import io.github.osasuwu.farmingevolution.breeding.Variety;
 import java.io.IOException;
@@ -29,13 +30,19 @@ import java.util.random.RandomGenerator;
 /**
  * Breeds lines without the game and reports how many generations and how much game time each
  * selection method needs to reach every variety of the scenario's pack data. A line that does
- * not reach its variety within the generation limit fails the check pipeline.
+ * not reach its variety within the generation limit fails the check pipeline. So does a
+ * raw-material requirement that a method cannot meet: see {@link #requirements}. The gaps
+ * between the varieties are printed and fail nothing: see {@link VarietyGaps}.
  *
  * <p>The model. A line starts from two wild individuals of the variety's species. Every
  * generation the two parents give the method's number of offspring, and the two best of them
  * (the best female and the best male of a two-sexed species) become the next parents; the old
  * parents are not kept. The line has reached the variety once both parents express every
  * threshold. Methods differ in what the breeder sees when ranking the offspring.
+ *
+ * <p>A threshold is either bound of the variety's region. A parent that expresses a value above
+ * a "not above" bound has not reached the variety, and the ranking leads a trait to the region
+ * from both sides: up to a "not below" bound and down to a "not above" one.
  */
 public final class BreedingSimulation {
     /** What a selection method lets the breeder see of an individual. */
@@ -94,7 +101,77 @@ public final class BreedingSimulation {
         }
     }
 
+    /**
+     * How one method gets the raw material a requirement asks for.
+     *
+     * @param passing   the varieties that pass the requirement, in pack data order
+     * @param reachedBy the lines of the passing variety that the method reaches soonest, or
+     *                  empty when it reaches none of them with every line
+     */
+    record RequirementOutcome(
+            String requirement, Method method, int generationLimit, List<String> passing, Optional<Outcome> reachedBy) {
+        RequirementOutcome {
+            passing = List.copyOf(passing);
+        }
+
+        String line() {
+            String text = "requirement " + requirement + ", method " + method.id() + ": ";
+            if (reachedBy.isEmpty()) {
+                return text + "out of reach";
+            }
+            Outcome outcome = reachedBy.get();
+            return text + "variety " + outcome.variety() + ", median " + outcome.time(median(outcome))
+                    + ", worst " + outcome.time(worst(outcome));
+        }
+
+        /** Why this outcome fails the pipeline, or empty when the method reaches a passing variety. */
+        Optional<String> failure() {
+            return reachedBy.isPresent() ? Optional.empty() : Optional.of("requirement " + requirement
+                    + ", method " + method.id() + ": none of the varieties that pass it ("
+                    + String.join(", ", passing) + ") was reached by every line within "
+                    + generationLimit + " generations");
+        }
+    }
+
     private BreedingSimulation() {
+    }
+
+    /**
+     * Every requirement by every method, from the outcomes of the varieties. No lines are bred
+     * here: a line that has reached a variety that passes the requirement gives its raw
+     * material. Of the passing varieties that every line reached, the method is credited with
+     * the one of the lowest median, then of the lowest worst line, then the first in pack data.
+     */
+    static List<RequirementOutcome> requirements(Scenario scenario, List<Outcome> outcomes) {
+        List<RequirementOutcome> reached = new ArrayList<>();
+        for (Requirement requirement : scenario.pack().requirements().values()) {
+            List<String> passing = scenario.pack().passing(requirement).stream().map(Variety::id).toList();
+            for (Method method : scenario.methods()) {
+                Outcome soonest = null;
+                for (String variety : passing) {
+                    for (Outcome outcome : outcomes) {
+                        if (outcome.variety().equals(variety) && outcome.method().equals(method)
+                                && outcome.failure().isEmpty() && (soonest == null
+                                || median(outcome) < median(soonest)
+                                || median(outcome) == median(soonest) && worst(outcome) < worst(soonest))) {
+                            soonest = outcome;
+                        }
+                    }
+                }
+                reached.add(new RequirementOutcome(requirement.id(), method, scenario.generationLimit(), passing,
+                        Optional.ofNullable(soonest)));
+            }
+        }
+        return reached;
+    }
+
+    /** The middle one of the sorted generation counts of an outcome whose every line got there. */
+    private static int median(Outcome outcome) {
+        return outcome.runs().stream().mapToInt(OptionalInt::getAsInt).sorted().toArray()[outcome.runs().size() / 2];
+    }
+
+    private static int worst(Outcome outcome) {
+        return outcome.runs().stream().mapToInt(OptionalInt::getAsInt).max().getAsInt();
     }
 
     /**
@@ -219,6 +296,15 @@ public final class BreedingSimulation {
                 rank += Math.min(threshold.getValue(), ((Allele.Numeric) chromosome.inactive()).value());
             }
         }
+        // The other side of the region: every visible value loses what it has above its
+        // "not above" bound, so selection leads a trait down to the bound and holds it there.
+        for (Map.Entry<String, Integer> ceiling : variety.ceilings().entrySet()) {
+            Chromosome chromosome = individual.genome().get(ceiling.getKey());
+            rank -= Math.max(0, ((Allele.Numeric) chromosome.active()).value() - ceiling.getValue());
+            if (sight == Sight.ALLELES) {
+                rank -= Math.max(0, ((Allele.Numeric) chromosome.inactive()).value() - ceiling.getValue());
+            }
+        }
         return rank;
     }
 
@@ -227,6 +313,14 @@ public final class BreedingSimulation {
      * each is of the variety's species and expresses every threshold.
      */
     static boolean reached(List<Individual> parents, Variety variety) {
+        // A parent that expresses a value above a "not above" bound is outside the region.
+        for (Individual parent : parents) {
+            for (Map.Entry<String, Integer> ceiling : variety.ceilings().entrySet()) {
+                if (parent.trait(ceiling.getKey()) > ceiling.getValue()) {
+                    return false;
+                }
+            }
+        }
         return parents.stream().allMatch(parent -> parent.species().equals(variety.species())
                 && variety.thresholds().entrySet().stream()
                         .allMatch(threshold -> parent.trait(threshold.getKey()) >= threshold.getValue()));
@@ -234,9 +328,11 @@ public final class BreedingSimulation {
 
     public static void main(String[] args) throws IOException {
         Path file = Path.of(args[0]);
+        Scenario scenario;
         List<Outcome> outcomes;
         try (Reader json = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-            outcomes = run(parse(json));
+            scenario = parse(json);
+            outcomes = run(scenario);
         } catch (RuntimeException e) {
             System.err.println("Breeding simulation cannot read " + file + ": " + e.getMessage());
             System.exit(1);
@@ -244,10 +340,23 @@ public final class BreedingSimulation {
         }
         System.out.println("Breeding simulation (" + file + "):");
         outcomes.forEach(outcome -> System.out.println("  " + outcome.line()));
+        List<RequirementOutcome> requirements = requirements(scenario, outcomes);
+        requirements.forEach(requirement -> System.out.println("  " + requirement.line()));
+        // A list for the author of pack data: gaps are allowed and fail nothing.
+        System.out.println("Gaps between varieties:");
+        VarietyGaps.lines(scenario.pack()).forEach(gap -> System.out.println("  " + gap));
+        List<String> outOfReach = requirements.stream().flatMap(requirement -> requirement.failure().stream()).toList();
+        if (!outOfReach.isEmpty()) {
+            System.err.println("Breeding simulation failed, requirements out of reach:");
+            outOfReach.forEach(failure -> System.err.println("  " + failure));
+        }
         List<String> failures = outcomes.stream().flatMap(outcome -> outcome.failure().stream()).toList();
         if (!failures.isEmpty()) {
             System.err.println("Breeding simulation failed:");
             failures.forEach(failure -> System.err.println("  " + failure));
+            System.exit(1);
+        }
+        if (!outOfReach.isEmpty()) {
             System.exit(1);
         }
     }
