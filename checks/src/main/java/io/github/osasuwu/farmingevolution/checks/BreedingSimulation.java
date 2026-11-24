@@ -112,6 +112,10 @@ public final class BreedingSimulation {
         if (runs < 1) {
             throw new IllegalArgumentException(entry + "runs must be at least 1, got " + runs);
         }
+        int generationLimit = get(root, "generation_limit", entry).getAsInt();
+        if (generationLimit < 1) {
+            throw new IllegalArgumentException(entry + "generation_limit must be at least 1, got " + generationLimit);
+        }
         List<Method> methods = new ArrayList<>();
         for (JsonElement element : get(root, "methods", entry).getAsJsonArray()) {
             JsonObject method = element.getAsJsonObject();
@@ -130,8 +134,7 @@ public final class BreedingSimulation {
         if (methods.isEmpty()) {
             throw new IllegalArgumentException(entry + "no methods");
         }
-        return new Scenario(pack, get(root, "seed", entry).getAsLong(), runs,
-                get(root, "generation_limit", entry).getAsInt(), methods);
+        return new Scenario(pack, get(root, "seed", entry).getAsLong(), runs, generationLimit, methods);
     }
 
     private static JsonElement get(JsonObject json, String name, String entry) {

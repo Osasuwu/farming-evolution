@@ -196,7 +196,13 @@ class BreedingSimulationTest {
         assertEquals("scenario: runs must be at least 1, got 0", assertThrows(IllegalArgumentException.class,
                 () -> BreedingSimulation.parse(new StringReader(noRuns))).getMessage());
 
-        String unknownSight = SCENARIO.replace("SHIFT", "0.2").replace("\"sees\": \"alleles\"", "\"sees\": \"genes\"");
+        // A limit below 1 would never be hit: the stage could not fail, and could not stop.
+        String noLimit = SCENARIO.replace("SHIFT", "0.2")
+                .replace("\"generation_limit\": 40", "\"generation_limit\": 0");
+        assertEquals("scenario: generation_limit must be at least 1, got 0", assertThrows(IllegalArgumentException.class,
+                () -> BreedingSimulation.parse(new StringReader(noLimit))).getMessage());
+
+        String unknownSight =SCENARIO.replace("SHIFT", "0.2").replace("\"sees\": \"alleles\"", "\"sees\": \"genes\"");
         assertEquals("scenario: method crossing: sees must be \"expressed\" or \"alleles\", got \"genes\"",
                 assertThrows(IllegalArgumentException.class,
                         () -> BreedingSimulation.parse(new StringReader(unknownSight))).getMessage());
