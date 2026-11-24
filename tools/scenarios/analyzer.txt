@@ -1,0 +1,19 @@
+# Checklist #31, "Скрещивание с анализатором": right click with the analyzer on a plant
+# prints both alleles of every chromosome in the chat.
+# Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/analyzer.txt
+command /time set day
+command /gamerule doDaylightCycle false
+command /clear @s
+tp 0.5 -60 0.5 0 30
+command /setblock 0 -61 3 minecraft:farmland
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:7,inactive:4}}}] 4
+command /give @s farmingevolution:analyzer
+# Seeds are in hotbar slot 1, the analyzer in slot 2. Plant a seed on the farmland.
+slot 1
+lookat 0 -61 3
+use
+# Right click the young plant with the analyzer: the alleles go to the chat.
+slot 2
+lookat 0 -60 3
+use
+shot analyzer-chat

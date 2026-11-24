@@ -2,8 +2,9 @@ modLoader="javafml"
 loaderVersion="[1,)"
 license="LGPL-3.0-or-later"
 
-# Dev-only: gradlew runScreenshot puts this jar into the mods folder of its own game
-# directory (build.gradle). It is never part of the mod a player installs.
+# Dev-only: gradlew runScreenshot and gradlew runControl put this jar into the mods folder of
+# their own game directories (build.gradle). It is never part of the mod a player installs.
+# Each mod does nothing unless its run sets its system property.
 [[mods]]
 modId="farmingevolution_screenshot"
 version="0"
@@ -13,6 +14,21 @@ Takes a screenshot of the vertical slice in a fresh world and closes the game.
 '''
 
 [[dependencies.farmingevolution_screenshot]]
+    modId="farmingevolution"
+    type="required"
+    versionRange="[0,)"
+    ordering="AFTER"
+    side="CLIENT"
+
+[[mods]]
+modId="farmingevolution_control"
+version="0"
+displayName="Farming Evolution client control"
+description='''
+Performs actions sent from tools/ClientControl.java in a fresh world and pictures each one.
+'''
+
+[[dependencies.farmingevolution_control]]
     modId="farmingevolution"
     type="required"
     versionRange="[0,)"
