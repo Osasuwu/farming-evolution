@@ -8,6 +8,10 @@
     {"id": "fiber_flax", "dominant": true, "wild": {"fiber_strength": 5}},
     {"id": "hemp", "wild": {"fiber_strength": 3, "fiber_length": 3}}
   ],
+  "mutations": [
+    {"parents": ["wild_flax", "wild_flax"], "result": "fiber_flax", "chance": 0.25,
+     "conditions": {"climate": {"temperature": {"min": 4, "max": 16}, "humidity": {"min": 65}}}}
+  ],
   "varieties": [
     {"id": "strong_flax", "species": "fiber_flax", "thresholds": {"fiber_strength": 7}},
     {"id": "strong_hemp", "species": "hemp", "thresholds": {"fiber_strength": 7}},

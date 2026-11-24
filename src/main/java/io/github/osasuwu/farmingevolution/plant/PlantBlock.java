@@ -44,8 +44,8 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
      *
      * <p>The seeds of a ripe plant are its offspring: each seed is one cross of the plant with
      * itself, so its traits may move off the parent's (CONCEPT.md, "Селекция": selection from
-     * wild populations, before crossing exists). An unripe plant gives back the seed it grew
-     * from unchanged.
+     * wild populations, before crossing exists), crossed in the climate of the place where the
+     * plant grew. An unripe plant gives back the seed it grew from unchanged.
      */
     @Override
     protected List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
@@ -57,6 +57,10 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
         Individual genome = plant.genome().get();
         // A genome set by a command has not been through the reading of a save; see Products.of.
         Individual parent = FarmingEvolution.BREEDING.restore(genome, replaced -> { });
+        // The climate of the place decides which hybridizations of pack data may happen. There
+        // is no soil model yet, so a hybridization that needs a soil does not happen.
+        BlockPos pos = BlockPos.containing(params.getParameter(LootContextParams.ORIGIN));
+        Environment environment = new Environment(FarmingEvolution.CLIMATE.at(params.getLevel(), pos).readings(), null);
         Random random = new Random(params.getLevel().random.nextLong());
         List<ItemStack> drops = new ArrayList<>();
         for (ItemStack stack : loot) {
@@ -66,7 +70,7 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
             }
             for (int i = 0; i < stack.getCount(); i++) {
                 ItemStack seed = stack.copyWithCount(1);
-                seed.set(FarmingEvolution.GENOME, FarmingEvolution.BREEDING.cross(parent, parent, Environment.NONE, random));
+                seed.set(FarmingEvolution.GENOME, FarmingEvolution.BREEDING.cross(parent, parent, environment, random));
                 drops.add(seed);
             }
         }

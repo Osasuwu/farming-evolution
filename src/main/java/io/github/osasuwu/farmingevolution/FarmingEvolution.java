@@ -3,6 +3,8 @@ package io.github.osasuwu.farmingevolution;
 import io.github.osasuwu.farmingevolution.breeding.Breeding;
 import io.github.osasuwu.farmingevolution.breeding.Individual;
 import io.github.osasuwu.farmingevolution.breeding.PackData;
+import io.github.osasuwu.farmingevolution.climate.ClimateSource;
+import io.github.osasuwu.farmingevolution.climate.GradientClimate;
 import io.github.osasuwu.farmingevolution.plant.GenomeCodec;
 import io.github.osasuwu.farmingevolution.plant.PlantBlock;
 import io.github.osasuwu.farmingevolution.plant.PlantBlockEntity;
@@ -67,6 +69,9 @@ public final class FarmingEvolution {
 
     /** The item tags of the raw-material requirements of {@link #PACK}. */
     public static final Requirements REQUIREMENTS = new Requirements(PACK);
+
+    /** Where the mod reads the climate of a place: the climate stub of the vertical slice. */
+    public static final ClimateSource CLIMATE = new GradientClimate();
 
     /**
      * Plant fibre of the prototype: a plain item the check pipeline sends through a Create
