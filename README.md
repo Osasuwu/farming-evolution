@@ -49,16 +49,18 @@
 методом достигается каждое требование к сырью, затем — пробелы между сортами по каждому виду:
 
 ```
-variety strong_fiber, method selection: median 10 generations (50 min), worst 32 generations (160 min); 1000 of 1000 lines reached the thresholds within 40 generations
-variety strong_fiber, method crossing: median 8 generations (40 min), worst 14 generations (70 min); 1000 of 1000 lines reached the thresholds within 40 generations
-requirement strong_fiber, method selection: variety strong_fiber, median 10 generations (50 min), worst 32 generations (160 min)
-requirement strong_fiber, method crossing: variety strong_fiber, median 8 generations (40 min), worst 14 generations (70 min)
+Breeding simulation (<путь>/checks/breeding-simulation.json):
+  variety strong_fiber, method selection: median 10 generations (50 min), worst 32 generations (160 min); 1000 of 1000 lines reached the thresholds within 40 generations
+  variety strong_fiber, method crossing: median 8 generations (40 min), worst 14 generations (70 min); 1000 of 1000 lines reached the thresholds within 40 generations
+  requirement strong_fiber, method selection: variety strong_fiber, median 10 generations (50 min), worst 32 generations (160 min)
+  requirement strong_fiber, method crossing: variety strong_fiber, median 8 generations (40 min), worst 14 generations (70 min)
 Gaps between varieties:
   species flax: no variety for fiber_strength 1..6
 ```
 
 Команда падает в двух случаях: хотя бы одна линия не дошла до сорта за предел поколений, или
-требование к сырью недостижимо каким-то методом. Пробелы команду не роняют: это список для
+требование к сырью недостижимо каким-то методом (второе не бывает без первого: недостижимо то
+требование, до проходящих сортов которого не дошли все линии). Пробелы команду не роняют: это список для
 автора данных. Все числа — в [checks/breeding-simulation.json](checks/breeding-simulation.json): данные сборки
 (`pack`, формат — в [breeding/README.md](breeding/README.md)), зерно `seed`, число линий `runs`,
 предел `generation_limit` и методы. При том же файле результат тот же.
