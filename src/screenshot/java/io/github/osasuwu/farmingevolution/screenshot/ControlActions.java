@@ -4,17 +4,25 @@ import com.mojang.blaze3d.platform.InputConstants;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.KeyboardHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.lwjgl.glfw.GLFW;
@@ -37,10 +45,14 @@ final class ControlActions {
     /** Ticks Shift is held before and after the click, so the server sees the player sneaking. */
     private static final int SHIFT_LEAD_TICKS = 3;
 
+    /** The longest a Shift action waits after letting go of Shift for the player to stand up. */
+    private static final int STAND_UP_TICKS = 10;
+
     private static final Field MOUSE_X = GameText.field(MouseHandler.class, "xpos");
     private static final Field MOUSE_Y = GameText.field(MouseHandler.class, "ypos");
     private static final Field MOUSE_GRABBED = GameText.field(MouseHandler.class, "mouseGrabbed");
     private static final Method MOUSE_PRESS = method(MouseHandler.class, "onPress", long.class, int.class, int.class, int.class);
+    private static final Method CHAR_TYPED = method(KeyboardHandler.class, "charTyped", long.class, int.class, int.class);
 
     private ControlActions() {
     }
@@ -64,15 +76,26 @@ final class ControlActions {
     record Action(String line, Step step, String shotName, Extra extra, boolean quit, boolean picture) {
     }
 
-    enum Extra { NONE, READ, SLOTS }
+    enum Extra { NONE, READ, SLOTS, DROPS, JEI }
 
     /**
-     * What lookat aims at: a block (whole-number coordinates) or a point. A block is aimed at
-     * where it can be seen from the eyes: the centre of its outline, or just inside the top or
-     * bottom face when the eyes are above or below it, so a ray from above a field hits the
-     * farmland or the low crop it names, not the block in front of it.
+     * What lookat aims at: a block (whole-number coordinates) or a point. A block is aimed at a
+     * point of its outline that a ray from the eyes reaches without hitting another block first:
+     * first the centre of the outline, or just inside the top or bottom face when the eyes are
+     * above or below it; if something is in the way (a crop on the farmland, a block in front),
+     * the centres and then a grid of points of the faces turned to the eyes. When no point is
+     * reached, the first one is aimed at and {@code state} shows what the ray hits instead.
      */
     private record Target(Vec3 point, BlockPos block) {
+        /**
+         * Where along each side of a face the grid points lie. The rows next to the edges find
+         * thin openings: the gap between farmland and the crop on it, seen over the next farmland.
+         */
+        private static final double[] GRID = {0.02, 0.1, 0.3, 0.5, 0.7, 0.9, 0.98};
+
+        /** How far inside the outline an aimed point lies, so the ray ends in the block. */
+        private static final double INSET = 0.01;
+
         Vec3 aimFrom(Minecraft mc) {
             if (block == null) {
                 return point;
@@ -82,9 +105,65 @@ final class ControlActions {
                 return Vec3.atCenterOf(block);
             }
             AABB box = shape.bounds().move(block);
-            double eyes = mc.player.getEyeY();
-            double y = eyes > box.maxY ? box.maxY - 0.01 : eyes < box.minY ? box.minY + 0.01 : box.getCenter().y;
-            return new Vec3(box.getCenter().x, y, box.getCenter().z);
+            Vec3 eyes = mc.player.getEyePosition();
+            List<Vec3> points = candidates(box, eyes);
+            for (Vec3 candidate : points) {
+                if (reaches(mc, eyes, candidate)) {
+                    return candidate;
+                }
+            }
+            return points.getFirst();
+        }
+
+        /** The old default first, then the centres of the faces turned to the eyes, then grids on them. */
+        private static List<Vec3> candidates(AABB box, Vec3 eyes) {
+            List<Vec3> points = new ArrayList<>();
+            Vec3 centre = box.getCenter();
+            double y = eyes.y > box.maxY ? box.maxY - INSET : eyes.y < box.minY ? box.minY + INSET : centre.y;
+            points.add(new Vec3(centre.x, y, centre.z));
+            List<Direction> faces = new ArrayList<>();
+            for (Direction face : Direction.values()) {
+                double eyesAlong = eyes.get(face.getAxis());
+                if (face.getAxisDirection() == Direction.AxisDirection.POSITIVE ? eyesAlong > box.max(face.getAxis()) : eyesAlong < box.min(face.getAxis())) {
+                    faces.add(face);
+                }
+            }
+            for (Direction face : faces) {
+                points.add(onFace(box, face, 0.5, 0.5));
+            }
+            for (Direction face : faces) {
+                for (double u : GRID) {
+                    for (double v : GRID) {
+                        points.add(onFace(box, face, u, v));
+                    }
+                }
+            }
+            return points;
+        }
+
+        /** A point just inside the given face of the box, at fractions u and v along its other two axes. */
+        private static Vec3 onFace(AABB box, Direction face, double u, double v) {
+            Direction.Axis axis = face.getAxis();
+            double[] at = new double[3];
+            double[] fractions = {u, v};
+            int next = 0;
+            for (Direction.Axis other : Direction.Axis.values()) {
+                if (other == axis) {
+                    at[other.ordinal()] = face.getAxisDirection() == Direction.AxisDirection.POSITIVE
+                            ? box.max(other) - INSET : box.min(other) + INSET;
+                } else {
+                    at[other.ordinal()] = box.min(other) + fractions[next++] * (box.max(other) - box.min(other));
+                }
+            }
+            return new Vec3(at[0], at[1], at[2]);
+        }
+
+        /** Whether a ray from the eyes to the point hits this block first and within the player's reach. */
+        private boolean reaches(Minecraft mc, Vec3 eyes, Vec3 point) {
+            Vec3 past = eyes.add(point.subtract(eyes).scale(1.05));
+            BlockHitResult hit = mc.level.clip(new ClipContext(eyes, past, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, mc.player));
+            return hit.getType() == HitResult.Type.BLOCK && hit.getBlockPos().equals(block)
+                    && hit.getLocation().distanceTo(eyes) <= mc.player.blockInteractionRange();
         }
     }
 
@@ -144,6 +223,10 @@ final class ControlActions {
                 yield new Action(line, hold(movementKey(args[0]), ticks), shot, Extra.NONE, false, true);
             }
             case "use", "attack" -> {
+                if (verb.equals("use") && args.length > 0 && args[0].equalsIgnoreCase("hold")) {
+                    count(args, 2);
+                    yield new Action(line, holdUse(ticks(args, 1)), shot, Extra.NONE, false, true);
+                }
                 boolean shift = flag(args, "shift");
                 yield new Action(line, click(verb.equals("use"), shift), shot, Extra.NONE, false, true);
             }
@@ -170,12 +253,41 @@ final class ControlActions {
             }
             case "close" -> {
                 count(args, 0);
+                // With no screen open there is nothing to close: the action does nothing, so a
+                // scenario that closes "just in case" goes on (issue #78). Esc that a focused
+                // field takes for itself (JEI's search) leaves the screen open; then the screen
+                // is closed as Esc closes it.
+                yield new Action(line, once(mc -> {
+                    var screen = mc.screen;
+                    if (screen != null) {
+                        press(mc, GLFW.GLFW_KEY_ESCAPE);
+                        if (mc.screen == screen && screen.shouldCloseOnEsc()) {
+                            screen.onClose();
+                        }
+                    }
+                }), shot, Extra.NONE, false, true);
+            }
+            case "type" -> {
+                if (rest.isEmpty()) {
+                    throw new ActionException("type takes the text to type into the focused field of the open screen");
+                }
                 yield new Action(line, once(mc -> {
                     if (mc.screen == null) {
                         throw new ActionException("no screen is open");
                     }
-                    press(mc, GLFW.GLFW_KEY_ESCAPE);
+                    type(mc, rest);
                 }), shot, Extra.NONE, false, true);
+            }
+            case "drops" -> {
+                if (args.length > 1) {
+                    throw new ActionException("drops takes an optional radius in blocks");
+                }
+                dropsRadius(line); // a bad number fails here, not after the action ran
+                yield new Action(line, once(mc -> { }), shot, Extra.DROPS, false, false);
+            }
+            case "jei" -> {
+                jeiCheck(line); // a bad check fails here, not after the action ran
+                yield new Action(line, once(mc -> { }), shot, Extra.JEI, false, false);
             }
             case "key" -> {
                 count(args, 1);
@@ -289,6 +401,42 @@ final class ControlActions {
         return words.length > 1 ? Math.max(1, Math.min(100, (int) number(words, 1, "line count"))) : 10;
     }
 
+    /**
+     * What {@code jei} checks in JEI's item list: nothing ({@code jei}), that an item is in it
+     * ({@code jei has <id>}), that it is not ({@code jei lacks <id>}), or that the list is empty
+     * ({@code jei none}). A check that does not hold fails the action, so a scenario stops there.
+     */
+    record JeiCheck(String kind, String item) {
+    }
+
+    static JeiCheck jeiCheck(String line) {
+        String[] words = line.strip().split("\\s+");
+        if (words.length == 1) {
+            return new JeiCheck("list", null);
+        }
+        String kind = words[1].toLowerCase(Locale.ROOT);
+        if (kind.equals("none") && words.length == 2) {
+            return new JeiCheck(kind, null);
+        }
+        if ((kind.equals("has") || kind.equals("lacks")) && words.length == 3 && words[2].matches("[a-z0-9_.-]+:[a-z0-9_./-]+")) {
+            return new JeiCheck(kind, words[2]);
+        }
+        throw new ActionException("jei takes nothing, has <item id>, lacks <item id> or none");
+    }
+
+    /** The radius in blocks {@code drops} looks in, 8 by default, at most 64. */
+    static double dropsRadius(String line) {
+        String[] words = line.strip().split("\\s+");
+        if (words.length == 1) {
+            return 8;
+        }
+        double radius = number(words, 1, "radius");
+        if (radius <= 0 || radius > 64) {
+            throw new ActionException("the radius of drops is more than 0 and at most 64 blocks");
+        }
+        return radius;
+    }
+
     // ---------------------------------------------------------------- steps
 
     private static Step once(java.util.function.Consumer<Minecraft> body) {
@@ -320,29 +468,66 @@ final class ControlActions {
     }
 
     /**
-     * Right (use) or left (attack) click at the crosshair: a block, an entity or the air. With
-     * Shift the player sneaks first, so the server sees {@code isShiftKeyDown}; a lookat target
-     * is aimed at again from the lower eyes.
+     * Right (use) or left (attack) click at the crosshair: a block, an entity or the air. A
+     * lookat target is aimed at again from the eyes as they are at the click. With Shift the
+     * player sneaks first, so the server sees {@code isShiftKeyDown}; after letting go of Shift
+     * the action waits until the player stands again and aims at the target from the standing
+     * eyes, so the next action does not look past it (issue #78: aimed from the lower eyes of
+     * sneaking, a plain {@code use} right after {@code use shift} missed a low block).
      */
     private static Step click(boolean use, boolean shift) {
         int clickTick = shift ? SHIFT_LEAD_TICKS : 0;
-        int lastTick = shift ? 2 * SHIFT_LEAD_TICKS : 0;
+        int releaseTick = shift ? 2 * SHIFT_LEAD_TICKS : 0;
         return (mc, tick) -> {
             if (tick == 0) {
                 requireNoScreen(mc);
             }
             if (shift) {
-                mc.options.keyShift.setDown(tick < lastTick);
+                mc.options.keyShift.setDown(tick < releaseTick);
             }
             if (tick == clickTick) {
-                if (shift && aimTarget != null) {
-                    aim(mc, aimTarget.aimFrom(mc));
-                }
+                reaim(mc);
                 mc.gameRenderer.pick(1.0F);
                 KeyMapping.click((use ? mc.options.keyUse : mc.options.keyAttack).getKey());
             }
-            return tick >= lastTick;
+            if (tick < releaseTick) {
+                return false;
+            }
+            if (!shift) {
+                return true;
+            }
+            boolean standing = !mc.player.isCrouching() && mc.player.getPose() == Pose.STANDING;
+            if (standing || tick >= releaseTick + STAND_UP_TICKS) {
+                reaim(mc);
+                return true;
+            }
+            return false;
         };
+    }
+
+    /**
+     * Holds the use key for the given ticks, as holding the right button does: eating, drinking,
+     * drawing a bow. The press starts the use; letting go after the ticks finishes or stops it.
+     */
+    private static Step holdUse(int ticks) {
+        return (mc, tick) -> {
+            if (tick == 0) {
+                requireNoScreen(mc);
+                reaim(mc);
+                mc.gameRenderer.pick(1.0F);
+                KeyMapping.click(mc.options.keyUse.getKey());
+            }
+            boolean done = tick >= ticks;
+            mc.options.keyUse.setDown(!done);
+            return done;
+        };
+    }
+
+    /** Turns to the last lookat target from where the eyes are now; nothing after look, turn or tp. */
+    private static void reaim(Minecraft mc) {
+        if (aimTarget != null) {
+            aim(mc, aimTarget.aimFrom(mc));
+        }
     }
 
     /** Holds the attack key for the given ticks, as holding the left button breaks a block. */
@@ -352,6 +537,7 @@ final class ControlActions {
             if (tick == 0) {
                 requireNoScreen(mc);
                 grabbedBefore[0] = mc.mouseHandler.isMouseGrabbed();
+                reaim(mc);
                 mc.gameRenderer.pick(1.0F);
                 KeyMapping.click(mc.options.keyAttack.getKey());
             }
@@ -413,6 +599,24 @@ final class ControlActions {
         int scancode = GLFW.glfwGetKeyScancode(key);
         mc.keyboardHandler.keyPress(window, key, scancode, GLFW.GLFW_PRESS, 0);
         mc.keyboardHandler.keyPress(window, key, scancode, GLFW.GLFW_RELEASE, 0);
+    }
+
+    /**
+     * Types the text into the open screen through the window's character callback, as a
+     * keyboard does: the focused field (JEI's search, the creative search, a sign) gets each
+     * character, and mods see the same screen events as for a person typing.
+     */
+    private static void type(Minecraft mc, String text) {
+        long window = mc.getWindow().getWindow();
+        text.codePoints().forEach(codePoint -> {
+            try {
+                CHAR_TYPED.invoke(mc.keyboardHandler, window, codePoint, 0);
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException(e);
+            } catch (InvocationTargetException e) {
+                throw new IllegalStateException(e.getCause());
+            }
+        });
     }
 
     /** Moves Minecraft's idea of the pointer to screen (GUI-scaled) coordinates; the desktop cursor stays. */

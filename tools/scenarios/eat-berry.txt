@@ -1,0 +1,23 @@
+# Issue #78: holding the right button eats a wild berry in survival. The food level in the
+# state line goes up by the berry's 2 points and the stack in the hand goes down by one.
+# Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/eat-berry.txt
+command /time set day
+command /gamerule doDaylightCycle false
+# On peaceful hunger refills by itself, so the food level would not show the eating.
+command /difficulty easy
+command /clear @s
+tp 0.5 -60 0.5 0 0
+# Strong hunger drains about 25 points in ten seconds: all the saturation (up to 20) first,
+# then food, so the food level ends below 20 and the berry can be eaten. (Level 255 does
+# nothing: the amplifier wraps around to no hunger.)
+command /effect give @s minecraft:hunger 10 100
+wait 210
+command /effect clear @s
+command /give @s farmingevolution:wild_berries 4
+slot 1
+state
+# Eating takes 32 ticks; the button is held for 40.
+use hold 40
+shot eat-berry
+state
+command /difficulty peaceful
