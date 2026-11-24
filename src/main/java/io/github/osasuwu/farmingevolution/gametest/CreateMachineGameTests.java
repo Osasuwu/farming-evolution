@@ -1,6 +1,11 @@
 package io.github.osasuwu.farmingevolution.gametest;
 
 import io.github.osasuwu.farmingevolution.FarmingEvolution;
+import io.github.osasuwu.farmingevolution.breeding.Allele;
+import io.github.osasuwu.farmingevolution.breeding.Breeding;
+import io.github.osasuwu.farmingevolution.breeding.Chromosome;
+import io.github.osasuwu.farmingevolution.breeding.Individual;
+import io.github.osasuwu.farmingevolution.breeding.Sex;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -8,6 +13,7 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
@@ -20,6 +26,7 @@ import net.neoforged.neoforge.items.ItemHandlerHelper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The mod's items inside Create machines. Create is reached through registries and the
@@ -33,12 +40,15 @@ public final class CreateMachineGameTests {
     }
 
     /**
-     * A creative motor drives a millstone; one fibre goes in through the millstone's item
-     * handler and one string is taken out of it. The milling recipe is the pack's KubeJS
-     * script kubejs/server_scripts/fiber.js, so the test also needs KubeJS to have loaded it.
+     * A creative motor drives a millstone; the fibre one harvest of a strong flax gives goes in
+     * through the millstone's item handler and one string is taken out of it. The fibre is
+     * what the mod hands the player for the plant ({@code Products.of}, the same call the
+     * harvest makes): a fiber_flax with strength 8 fits the variety strong_flax. The milling
+     * recipe is the pack's KubeJS script kubejs/server_scripts/strong_fiber.js, so the test
+     * also needs KubeJS to have loaded it.
      */
     @GameTest(template = "empty", timeoutTicks = 600)
-    public static void millstoneTurnsFiberIntoString(GameTestHelper helper) {
+    public static void millstoneTurnsHarvestOfFlaxVarietyIntoString(GameTestHelper helper) {
         BlockPos motorPos = new BlockPos(1, 1, 1);
         BlockPos millstonePos = motorPos.above();
         helper.setBlock(motorPos, createBlock("creative_motor").defaultBlockState()
@@ -50,10 +60,17 @@ public final class CreateMachineGameTests {
         if (millstone == null) {
             throw new GameTestAssertException("The millstone exposes no item handler");
         }
-        ItemStack notAccepted = ItemHandlerHelper.insertItem(
-                millstone, new ItemStack(FarmingEvolution.FIBER.get()), false);
+        Individual strongFlax = new Individual(Sex.NONE, Map.of(
+                Breeding.SPECIES, Chromosome.pure(new Allele.Named("fiber_flax", true)),
+                "fiber_strength", Chromosome.pure(new Allele.Numeric(8))));
+        Item harvested = FarmingEvolution.PRODUCTS.of(strongFlax);
+        ResourceLocation harvestedId = BuiltInRegistries.ITEM.getKey(harvested);
+        if (!harvestedId.equals(ResourceLocation.fromNamespaceAndPath(FarmingEvolution.MOD_ID, "strong_flax"))) {
+            throw new GameTestAssertException("Expected a fiber_flax of strength 8 to give strong_flax, got " + harvestedId);
+        }
+        ItemStack notAccepted = ItemHandlerHelper.insertItem(millstone, new ItemStack(harvested), false);
         if (!notAccepted.isEmpty()) {
-            throw new GameTestAssertException("The millstone did not accept the fibre");
+            throw new GameTestAssertException("The millstone did not accept " + harvestedId);
         }
 
         // What has been taken out so far: kept across ticks, so a wrong output is reported
