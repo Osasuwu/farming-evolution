@@ -1,0 +1,68 @@
+name: Verify
+
+# Runs the whole check pipeline (`gradlew verify`, see README.md) on every pull
+# request and on main. The job name `verify` is a required check on main.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      # The dedicated-server stage needs the Minecraft EULA accepted. The build
+      # never accepts it by itself: a person sets the repository variable
+      # MINECRAFT_EULA to `true` after reading https://aka.ms/MinecraftEULA, and
+      # only then does this step write the file the server looks for. A fork
+      # sets its own variable.
+      - name: Minecraft EULA
+        env:
+          MINECRAFT_EULA: ${{ vars.MINECRAFT_EULA }}
+        run: |
+          set -euo pipefail
+          if [ "$MINECRAFT_EULA" != "true" ]; then
+            echo "::error::Repository variable MINECRAFT_EULA is not 'true'. Read https://aka.ms/MinecraftEULA and, if you agree, set it: Settings -> Secrets and variables -> Actions -> Variables."
+            exit 1
+          fi
+          mkdir -p run/smoke
+          printf 'eula=true\n' > run/smoke/eula.txt
+
+      - name: gradlew verify
+        run: ./gradlew verify --console=plain
+
+      - name: Upload logs and reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: verify-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            run/smoke/logs/
+            run/gametest/logs/
+            build/reports/
+            checks/build/reports/
+          retention-days: 14
+          if-no-files-found: ignore
