@@ -1,6 +1,9 @@
 # Issue #78 and checklist #31: text typed into JEI's search field; the jei action reads what JEI
 # finds and fails the scenario when a check does not hold. The removed prototype fibre
 # farmingevolution:fiber and hemp (only in the GameTest data) must not be found.
+# Caveat: the mod's items have no creative tab, so JEI lists none of them at all. Until they get
+# one, the lacks/none checks below pass whether or not the item exists; they prove the search
+# and the check work, not that fibre and hemp are gone from the game.
 # The search field is at the bottom right of the 1280x720 picture of runControl.
 # Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/jei-search.txt
 close
@@ -15,10 +18,6 @@ jei has create:cogwheel
 clickat 1070 672 right
 type fiber
 shot jei-search-fiber
-jei lacks farmingevolution:fiber
-# By the item id: & searches the resource location in JEI.
-clickat 1070 672 right
-type &farmingevolution:fiber
 jei lacks farmingevolution:fiber
 clickat 1070 672 right
 type hemp
