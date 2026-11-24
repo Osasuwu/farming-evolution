@@ -1,5 +1,8 @@
 package io.github.osasuwu.farmingevolution.breeding;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -23,6 +26,11 @@ public record Mutation(String firstParent, String secondParent, String result, d
      * @param climate the range each named climate reading must lie in, bounds included
      */
     public record Condition(Set<String> soils, Map<String, Range> climate) {
+        public Condition {
+            soils = Collections.unmodifiableSet(new LinkedHashSet<>(soils));
+            climate = Collections.unmodifiableMap(new LinkedHashMap<>(climate));
+        }
+
         public boolean holds(Environment environment) {
             if (!soils.isEmpty() && (environment.soil() == null || !soils.contains(environment.soil()))) {
                 return false;

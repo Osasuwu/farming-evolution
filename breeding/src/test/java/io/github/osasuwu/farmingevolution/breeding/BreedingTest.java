@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
@@ -27,7 +28,8 @@ class BreedingTest {
               "species": [
                 {"id": "wild_flax", "wild": {"fiber_strength": 2, "habit": "tall"}},
                 {"id": "wild_hemp", "wild": {"fiber_strength": 3, "habit": "dwarf"}},
-                {"id": "fiber_flax", "wild": {"fiber_strength": 5, "habit": "dwarf"}}
+                {"id": "fiber_flax", "wild": {"fiber_strength": 5, "habit": "dwarf"}},
+                {"id": "moss", "wild": {"fiber_strength": 2}}
               ],
               "mutations": [
                 {"parents": ["wild_flax", "wild_hemp"], "result": "fiber_flax", "chance": 0.25,
@@ -193,11 +195,9 @@ class BreedingTest {
                 assertThrows(IllegalArgumentException.class,
                         () -> plants.cross(flax, plants.wild("wild_flax", Sex.MALE), Environment.NONE, random))
                         .getMessage());
-        Map<String, Chromosome> withoutHabit = new LinkedHashMap<>(flax.genome());
-        withoutHabit.remove("habit");
         assertEquals("parents have different chromosome sets: [species, fiber_strength, habit] and [species, fiber_strength]",
                 assertThrows(IllegalArgumentException.class,
-                        () -> plants.cross(flax, new Individual(Sex.NONE, withoutHabit), Environment.NONE, random))
+                        () -> plants.cross(flax, plants.wild("moss", Sex.NONE), Environment.NONE, random))
                         .getMessage());
     }
 
@@ -281,5 +281,83 @@ class BreedingTest {
         assertEquals(expected.keySet(), reported.keySet());
         // Exact but for floating point rounding.
         expected.forEach((pair, chance) -> assertEquals(chance, reported.get(pair), 1e-12, pair.toString()));
+    }
+
+    @Test
+    void reportedOddsOfATraitAtItsMinimumShiftOnlyUp() {
+        Breeding breeding = breeding(ANIMALS);
+        CrossOdds odds = breeding.odds(
+                breeding.wild("aurochs", Sex.MALE).with("milk_yield", numbers(1, 1)),
+                breeding.wild("aurochs", Sex.FEMALE).with("milk_yield", numbers(1, 1)), Environment.NONE);
+
+        // 1 is the minimum of milk_yield: the downward half of the 0.3 shift stays at 1, so a
+        // gamete carries 1 with 0.7 + 0.15 = 0.85 and 2 with 0.15.
+        Map<Chromosome, Double> expected = Map.of(
+                numbers(1, 1), 0.7225, numbers(1, 2), 0.1275, numbers(2, 1), 0.1275, numbers(2, 2), 0.0225);
+        Map<Chromosome, Double> reported = odds.chromosomes().get("milk_yield").odds();
+        assertEquals(expected.keySet(), reported.keySet());
+        expected.forEach((pair, chance) -> assertEquals(chance, reported.get(pair), 1e-12, pair.toString()));
+    }
+
+    @Test
+    void offspringDoesNotDependOnTheOrderAGenomeWasBuiltIn() {
+        Breeding breeding = breeding(PLANTS);
+        Individual first = breeding.wild("wild_flax", Sex.NONE)
+                .with("fiber_strength", numbers(2, 7))
+                .with("habit", new Chromosome(new Allele.Named("tall", true), new Allele.Named("dwarf", false)));
+        List<String> backwards = new ArrayList<>(first.genome().keySet());
+        Collections.reverse(backwards);
+        Map<String, Chromosome> genome = new LinkedHashMap<>();
+        backwards.forEach(type -> genome.put(type, first.genome().get(type)));
+        Individual builtBackwards = new Individual(Sex.NONE, genome);
+        Individual second = breeding.wild("wild_hemp", Sex.NONE).with("fiber_strength", numbers(3, 5));
+
+        Random random = new Random(11);
+        Random sameSeed = new Random(11);
+        for (int i = 0; i < 20; i++) {
+            assertEquals(breeding.cross(first, second, Environment.NONE, random),
+                    breeding.cross(builtBackwards, second, Environment.NONE, sameSeed));
+        }
+    }
+
+    private static String rejection(Breeding breeding, Individual first, Individual second) {
+        String fromCross = assertThrows(IllegalArgumentException.class,
+                () -> breeding.cross(first, second, Environment.NONE, new Random(1))).getMessage();
+        String fromOdds = assertThrows(IllegalArgumentException.class,
+                () -> breeding.odds(first, second, Environment.NONE)).getMessage();
+        assertEquals(fromCross, fromOdds);
+        return fromCross;
+    }
+
+    @Test
+    void crossRejectsAnIndividualThatPackDataDoesNotDescribe() {
+        Breeding breeding = breeding(PLANTS);
+        Individual flax = breeding.wild("wild_flax", Sex.NONE);
+        Allele flaxAllele = new Allele.Named("wild_flax", false);
+        Individual scented = flax.with("aroma", numbers(1, 1));
+        Individual halfGhost = flax.with("species", new Chromosome(flaxAllele, new Allele.Named("ghost", false)));
+        Individual tooStrong = flax.with("fiber_strength", numbers(2, 50));
+        Individual bushy = flax.with("habit",
+                new Chromosome(new Allele.Named("tall", true), new Allele.Named("bushy", false)));
+        Map<String, Chromosome> withoutSpecies = new LinkedHashMap<>(flax.genome());
+        withoutSpecies.remove("species");
+        Individual nameless = new Individual(Sex.NONE, withoutSpecies);
+
+        assertEquals("first parent: unknown chromosome aroma", rejection(breeding, scented, scented));
+        assertEquals("second parent: unknown species: ghost", rejection(breeding, flax, halfGhost));
+        assertEquals("first parent: fiber_strength 50 is outside 1..10", rejection(breeding, tooStrong, flax));
+        assertEquals("second parent: habit has no allele bushy", rejection(breeding, flax, bushy));
+        assertEquals("first parent: no species chromosome", rejection(breeding, nameless, nameless));
+
+        // A chromosome pack data knows, on a species that does not carry it, and one that is missing.
+        Individual moss = breeding.wild("moss", Sex.NONE);
+        Individual mossWithHabit = moss.with("habit", Chromosome.pure(new Allele.Named("tall", true)));
+        Map<String, Chromosome> withoutHabit = new LinkedHashMap<>(flax.genome());
+        withoutHabit.remove("habit");
+        assertEquals("first parent: chromosomes [species, fiber_strength, habit] are not those of moss"
+                + " [species, fiber_strength]", rejection(breeding, mossWithHabit, mossWithHabit));
+        assertEquals("second parent: chromosomes [species, fiber_strength] are not those of wild_flax"
+                + " [species, fiber_strength, habit]",
+                rejection(breeding, flax, new Individual(Sex.NONE, withoutHabit)));
     }
 }

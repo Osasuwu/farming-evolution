@@ -1,5 +1,7 @@
 package io.github.osasuwu.farmingevolution.breeding;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -10,4 +12,7 @@ import java.util.Map;
  * @param sex         the odds of the offspring's sex
  */
 public record CrossOdds(Map<String, Distribution<Chromosome>> chromosomes, Distribution<Sex> sex) {
+    public CrossOdds {
+        chromosomes = Collections.unmodifiableMap(new LinkedHashMap<>(chromosomes));
+    }
 }

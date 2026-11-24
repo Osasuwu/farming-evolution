@@ -1,8 +1,11 @@
 package io.github.osasuwu.farmingevolution.breeding;
 
 import java.util.EnumSet;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.random.RandomGenerator;
 
 /**
@@ -39,7 +42,7 @@ public final class Breeding {
         Map<String, Allele> fromFirst = roll(gametes(first, second, environment), random);
         Map<String, Allele> fromSecond = roll(gametes(second, first, environment), random);
         Map<String, Chromosome> genome = new LinkedHashMap<>();
-        for (String type : first.genome().keySet()) {
+        for (String type : types(first)) {
             genome.put(type, pairing(fromFirst.get(type), fromSecond.get(type)).sample(random));
         }
         return new Individual(sexes(species).sample(random), genome);
@@ -54,7 +57,7 @@ public final class Breeding {
         Gametes fromFirst = gametes(first, second, environment);
         Gametes fromSecond = gametes(second, first, environment);
         Map<String, Distribution<Chromosome>> chromosomes = new LinkedHashMap<>();
-        for (String type : first.genome().keySet()) {
+        for (String type : types(first)) {
             chromosomes.put(type,
                     Distribution.combine(carried(fromFirst, type), carried(fromSecond, type), Breeding::pairing));
         }
@@ -74,6 +77,8 @@ public final class Breeding {
      * Throws IllegalArgumentException for a pair that cannot breed.
      */
     private Species breedingSpecies(Individual first, Individual second) {
+        check("first parent", first);
+        check("second parent", second);
         if (!first.genome().keySet().equals(second.genome().keySet())) {
             throw new IllegalArgumentException("parents have different chromosome sets: "
                     + first.genome().keySet() + " and " + second.genome().keySet());
@@ -88,6 +93,63 @@ public final class Breeding {
             throw new IllegalArgumentException(species.id() + " has no sexes" + got);
         }
         return species;
+    }
+
+    /**
+     * Refuses an individual pack data does not describe: one built by hand, or saved under
+     * other pack data. Throws IllegalArgumentException naming the parent and the fault.
+     */
+    private void check(String who, Individual individual) {
+        if (!individual.genome().containsKey(SPECIES)) {
+            throw new IllegalArgumentException(who + ": no species chromosome");
+        }
+        individual.genome().forEach((id, chromosome) -> {
+            for (Allele allele : List.of(chromosome.active(), chromosome.inactive())) {
+                String text = allele instanceof Allele.Named named
+                        ? named.id() : String.valueOf(((Allele.Numeric) allele).value());
+                try {
+                    if (id.equals(SPECIES)) {
+                        data.species(text);
+                        continue;
+                    }
+                    ChromosomeType type = data.chromosomes().get(id);
+                    if (type == null) {
+                        throw new IllegalArgumentException("unknown chromosome " + id);
+                    }
+                    try {
+                        type.allele(text);
+                    } catch (IllegalArgumentException e) {
+                        throw new IllegalArgumentException(id + " " + e.getMessage());
+                    }
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException(who + ": " + e.getMessage());
+                }
+            }
+        });
+        // Both species alleles, so a hybrid is held to each of its species.
+        Chromosome species = individual.genome().get(SPECIES);
+        for (Allele allele : List.of(species.active(), species.inactive())) {
+            String id = ((Allele.Named) allele).id();
+            Set<String> own = haploid(data.species(id)).keySet();
+            if (!individual.genome().keySet().equals(own)) {
+                throw new IllegalArgumentException(who + ": chromosomes " + individual.genome().keySet()
+                        + " are not those of " + id + " " + own);
+            }
+        }
+    }
+
+    /**
+     * The chromosome types of an individual in one fixed order: the species chromosome, then
+     * pack data order. Rolls go in this order, so the order a genome was built in changes nothing.
+     */
+    private List<String> types(Individual individual) {
+        List<String> types = new ArrayList<>(List.of(SPECIES));
+        for (String id : data.chromosomes().keySet()) {
+            if (individual.genome().containsKey(id)) {
+                types.add(id);
+            }
+        }
+        return types;
     }
 
     private static Distribution<Sex> sexes(Species species) {
@@ -118,9 +180,11 @@ public final class Breeding {
         }
         results.put(NO_MUTATION, untouched);
         Map<String, Distribution<Allele>> inherited = new LinkedHashMap<>();
-        parent.genome().forEach((type, chromosome) -> inherited.put(type, Distribution.combine(
-                Distribution.certain(chromosome), COIN,
-                (pair, heads) -> transmit(type, heads ? pair.active() : pair.inactive()))));
+        for (String type : types(parent)) {
+            inherited.put(type, Distribution.combine(
+                    Distribution.certain(parent.genome().get(type)), COIN,
+                    (pair, heads) -> transmit(type, heads ? pair.active() : pair.inactive())));
+        }
         return new Gametes(Distribution.of(results), inherited);
     }
 

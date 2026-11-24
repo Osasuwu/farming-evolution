@@ -1,5 +1,6 @@
 package io.github.osasuwu.farmingevolution.breeding;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -50,6 +51,10 @@ public sealed interface ChromosomeType {
 
     /** A closed list of named alleles. */
     record Categorical(String id, Map<String, Allele.Named> alleles) implements ChromosomeType {
+        public Categorical {
+            alleles = Collections.unmodifiableMap(new LinkedHashMap<>(alleles));
+        }
+
         @Override
         public Allele allele(String text) {
             Allele.Named allele = alleles.get(text);
