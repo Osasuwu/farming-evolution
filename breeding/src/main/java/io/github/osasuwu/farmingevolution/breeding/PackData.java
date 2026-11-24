@@ -57,6 +57,7 @@ public record PackData(
                 Variety variety = variety(element.getAsJsonObject(), chromosomes, species);
                 add(varieties, "variety", variety.id(), variety);
             }
+            checkRegions(varieties);
             return new PackData(chromosomes, species, mutations, varieties);
         } catch (JsonParseException | IllegalStateException | NumberFormatException
                 | UnsupportedOperationException | IndexOutOfBoundsException e) {
@@ -184,19 +185,80 @@ public record PackData(
             throw new PackDataException(entry + "unknown species " + speciesId);
         }
         Map<String, Integer> thresholds = new LinkedHashMap<>();
+        Map<String, Integer> ceilings = new LinkedHashMap<>();
         for (Map.Entry<String, JsonElement> threshold : get(json, "thresholds", entry).getAsJsonObject().entrySet()) {
             String name = threshold.getKey();
             if (!of.wild().containsKey(name) || !(chromosomes.get(name) instanceof ChromosomeType.Trait trait)) {
                 throw new PackDataException(entry + speciesId + " has no trait " + name);
             }
-            int value = whole(threshold.getValue(), entry + name + " threshold");
-            if (!trait.holds(value)) {
-                throw new PackDataException(entry + name + " threshold " + value + " is outside "
-                        + trait.min() + ".." + trait.max());
+            // A bare number is "not below"; an object sets "min" (not below), "max" (not above) or both.
+            if (!threshold.getValue().isJsonObject()) {
+                thresholds.put(name, bound(threshold.getValue(), entry + name + " threshold", trait, trait.min()));
+                continue;
             }
-            thresholds.put(name, value);
+            JsonObject bounds = threshold.getValue().getAsJsonObject();
+            known(bounds, entry + name + ": ", "min", "max");
+            if (bounds.has("min")) {
+                thresholds.put(name, bound(bounds.get("min"), entry + name + " min", trait, trait.min()));
+            }
+            if (bounds.has("max")) {
+                ceilings.put(name, bound(bounds.get("max"), entry + name + " max", trait, trait.max()));
+            }
+            if (!bounds.has("min") && !bounds.has("max")) {
+                throw new PackDataException(entry + name + " sets neither min nor max");
+            }
+            if (bounds.has("min") && bounds.has("max") && thresholds.get(name) > ceilings.get(name)) {
+                throw new PackDataException(entry + name + " min " + thresholds.get(name)
+                        + " is above max " + ceilings.get(name));
+            }
         }
-        return new Variety(id, speciesId, thresholds);
+        return new Variety(id, speciesId, thresholds, ceilings);
+    }
+
+    /**
+     * One bound of a variety. It must narrow the trait's range: a bound on the open edge of the
+     * range (the range's min for "not below", its max for "not above") bounds nothing, and two
+     * entries that differ only in such a bound would be one region written twice.
+     */
+    private static int bound(JsonElement json, String what, ChromosomeType.Trait trait, int openEdge) {
+        int value = whole(json, what);
+        String range = trait.min() + ".." + trait.max();
+        if (!trait.holds(value)) {
+            throw new PackDataException(what + " " + value + " is outside " + range);
+        }
+        if (value == openEdge) {
+            throw new PackDataException(what + " " + value + " does not narrow " + range);
+        }
+        return value;
+    }
+
+    /**
+     * Makes sure a plant never fits two varieties neither of which is the narrower one: any two
+     * varieties of one species are apart, nested, or a third variety has exactly the region
+     * they share. Two varieties with the same region are refused outright.
+     */
+    private static void checkRegions(Map<String, Variety> varieties) {
+        List<Variety> all = List.copyOf(varieties.values());
+        for (int i = 0; i < all.size(); i++) {
+            for (int j = i + 1; j < all.size(); j++) {
+                Variety first = all.get(i);
+                Variety second = all.get(j);
+                if (!first.species().equals(second.species()) || !first.overlaps(second)) {
+                    continue;
+                }
+                String pair = "varieties " + first.id() + " and " + second.id() + " of " + first.species();
+                boolean firstInside = first.inside(second);
+                boolean secondInside = second.inside(first);
+                if (firstInside && secondInside) {
+                    throw new PackDataException(pair + " have the same region");
+                }
+                if (!firstInside && !secondInside && all.stream().noneMatch(third ->
+                        third.species().equals(first.species()) && third.isSharedRegionOf(first, second))) {
+                    throw new PackDataException(pair + " overlap, neither lies inside the other, and no variety of "
+                            + first.species() + " has the region they share");
+                }
+            }
+        }
     }
 
     private static <T> void add(Map<String, T> entries, String kind, String id, T entry) {
