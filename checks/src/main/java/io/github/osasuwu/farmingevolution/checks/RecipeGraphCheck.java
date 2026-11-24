@@ -185,6 +185,8 @@ public final class RecipeGraphCheck {
     private static List<String> causes(Dump dump, Set<String> reachable, Set<String> outOfReach) {
         // For every item on the way: the items blocking it, each with the recipe it blocks.
         Map<String, Map<String, String>> blockers = new TreeMap<>();
+        // For every item on the way: the recipes making it whose inputs the game could not list.
+        Map<String, Set<String>> unreadableMakers = new TreeMap<>();
         List<String> pending = new ArrayList<>(outOfReach);
         while (!pending.isEmpty()) {
             String item = pending.remove(pending.size() - 1);
@@ -192,20 +194,31 @@ public final class RecipeGraphCheck {
                 continue;
             }
             Map<String, String> blocking = new TreeMap<>();
+            Set<String> unreadable = new TreeSet<>();
             for (Recipe recipe : dump.recipes()) {
-                if (recipe.unreadable().isPresent() || !recipe.outputs().contains(item)) {
+                if (!recipe.outputs().contains(item)) {
+                    continue;
+                }
+                if (recipe.unreadable().isPresent()) {
+                    unreadable.add(recipe.id());
                     continue;
                 }
                 recipe.inputs().stream().filter(input -> !inReach(input, reachable))
                         .forEach(input -> input.forEach(blocker -> blocking.putIfAbsent(blocker, recipe.id())));
             }
             blockers.put(item, blocking);
+            unreadableMakers.put(item, unreadable);
             pending.addAll(blocking.keySet());
         }
 
         List<String> causes = new ArrayList<>();
         blockers.forEach((item, blocking) -> {
-            if (blocking.isEmpty()) {
+            Set<String> unreadable = unreadableMakers.get(item);
+            if (!unreadable.isEmpty()) {
+                // Not a reason to make the item a starting resource: the graph cannot see these recipes.
+                causes.add(item + ": made only by recipes whose inputs cannot be read: " + String.join(", ", unreadable)
+                        + (blocking.isEmpty() ? "" : " (and by recipes with inputs out of reach)"));
+            } else if (blocking.isEmpty()) {
                 causes.add(item + ": no recipe makes it and it is not a starting resource");
             }
         });

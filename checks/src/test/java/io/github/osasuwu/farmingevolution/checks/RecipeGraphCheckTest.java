@@ -184,7 +184,7 @@ class RecipeGraphCheckTest {
                 recipe("pack:belt", "[[\"pack:glue\"]]", "[\"pack:belt\"]")));
         assertEquals(
                 List.of("recipe pack:belt: input pack:glue is out of reach",
-                        "pack:glue: no recipe makes it and it is not a starting resource"),
+                        "pack:glue: made only by recipes whose inputs cannot be read: other:glue"),
                 RecipeGraphCheck.problems(source, settings("pack:fiber")));
     }
 
