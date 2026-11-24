@@ -96,6 +96,11 @@ configurations {
 dependencies {
     checksRuntime project(':checks')
 
+    // The inheritance engine is plain Java without mod metadata, so the dev runs load it
+    // from the additional classpath and the mod jar carries its classes (see jar below).
+    implementation project(':breeding')
+    additionalRuntimeClasspath project(':breeding')
+
     // The pack's backbone mods, present in every run configuration of the dev environment.
     // The mod's code does not compile against them: GameTests reach Create through registries.
     // Coordinates: https://wiki.createmod.net/developers/depend-on-create/neoforge-1.21.1
@@ -128,6 +133,11 @@ neoForge.ideSyncTask generateModMetadata
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+// One file to install: the mod jar carries the classes of the inheritance engine.
+tasks.named('jar') {
+    from { project(':breeding').sourceSets.main.output }
 }
 
 // ---------------------------------------------------------------------------
@@ -214,5 +224,5 @@ tasks.named('runSmokeServer') { mustRunAfter 'runGameTestServer' }
 tasks.register('verify') {
     group = 'verification'
     description = 'The whole check pipeline: build, unit tests, GameTest, dedicated server boot with a log scan.'
-    dependsOn installGitHooks, checkEula, checkTrackedFiles, 'build', ':checks:build', 'runGameTestServer', scanSmokeLog
+    dependsOn installGitHooks, checkEula, checkTrackedFiles, 'build', ':checks:build', ':breeding:build', 'runGameTestServer', scanSmokeLog
 }

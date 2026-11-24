@@ -5,6 +5,7 @@
 /.gradle/
 /build/
 /checks/build/
+/breeding/build/
 !gradle/wrapper/gradle-wrapper.jar
 
 # Game directories of the run configurations

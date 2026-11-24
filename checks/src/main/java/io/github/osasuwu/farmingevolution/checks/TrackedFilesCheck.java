@@ -15,7 +15,8 @@ public final class TrackedFilesCheck {
      * Output directories of this build, the same ones .gitignore anchors;
      * the decompiled game lands in build/. A new Gradle subproject adds its build/ here.
      */
-    private static final List<String> OUTPUT_DIRS = List.of("build/", ".gradle/", "run/", "checks/build/");
+    private static final List<String> OUTPUT_DIRS =
+            List.of("build/", ".gradle/", "run/", "checks/build/", "breeding/build/");
 
     private TrackedFilesCheck() {
     }
