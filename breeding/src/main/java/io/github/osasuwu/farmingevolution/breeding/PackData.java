@@ -30,13 +30,6 @@ public record PackData(
         requirements = Collections.unmodifiableMap(new LinkedHashMap<>(requirements));
     }
 
-    /** Pack data without raw-material requirements. */
-    public PackData(
-            Map<String, ChromosomeType> chromosomes, Map<String, Species> species, List<Mutation> mutations,
-            Map<String, Variety> varieties) {
-        this(chromosomes, species, mutations, varieties, Map.of());
-    }
-
     /**
      * Reads and checks pack data. Throws PackDataException naming the entry and its fault, so a
      * broken pack stops at startup, not in the middle of a cross.
