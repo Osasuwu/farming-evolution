@@ -79,6 +79,16 @@ neoForge {
             programArgument '--nogui'
         }
 
+        // Client that pictures the slice and exits (issue #16; tasks at the end of this file).
+        // The picture is taken by a mod of its own (source set screenshot), which only this run
+        // gets, through the mods folder of its game directory: the mod jar never carries it.
+        screenshot {
+            client()
+            gameDirectory = project.file('run/screenshot')
+            systemProperty 'farmingevolution.screenshot', project.file('run/screenshot/screenshots/slice.png').absolutePath
+            programArguments.addAll '--width', '1280', '--height', '720'
+        }
+
         configureEach {
             logLevel = org.slf4j.event.Level.INFO
         }
@@ -155,7 +165,7 @@ tasks.named('jar') {
 // survive in a run directory. KubeJS re-creates its own generated files on start.
 // ---------------------------------------------------------------------------
 
-[runClient: 'run', runGameTestServer: 'run/gametest', runSmokeServer: 'run/smoke'].each { runTask, gameDir ->
+[runClient: 'run', runGameTestServer: 'run/gametest', runSmokeServer: 'run/smoke', runScreenshot: 'run/screenshot'].each { runTask, gameDir ->
     var sync = tasks.register("syncKubeJsFor${runTask.capitalize()}", Sync) {
         from layout.projectDirectory.dir('kubejs')
         into layout.projectDirectory.dir("${gameDir}/kubejs")
@@ -253,3 +263,53 @@ var checkRecipeGraph = tasks.register('checkRecipeGraph', JavaExec) {
     args recipeGraphDump.asFile.absolutePath, layout.projectDirectory.file('pack/recipe-graph.json').asFile.absolutePath
 }
 tasks.named('verify') { dependsOn checkRecipeGraph }
+
+// ---------------------------------------------------------------------------
+// Client screenshot (issue #16): gradlew runScreenshot starts the client with the mod, creates
+// a flat world, builds the slice in it, takes the picture F2 takes and exits. The picture is
+// run/screenshot/screenshots/slice.png. Not part of verify: the CI runner has no display.
+// ---------------------------------------------------------------------------
+
+sourceSets {
+    screenshot
+}
+neoForge.addModdingDependenciesTo(sourceSets.screenshot)
+dependencies {
+    screenshotImplementation sourceSets.main.output
+    screenshotImplementation project(':breeding')
+}
+
+var screenshotJar = tasks.register('screenshotJar', Jar) {
+    description = 'The dev-only mod of the screenshot run.'
+    from sourceSets.screenshot.output
+    archiveFileName = "${mod_id}-screenshot.jar"
+    destinationDirectory = layout.buildDirectory.dir('screenshot')
+}
+
+var installScreenshotMod = tasks.register('installScreenshotMod', Sync) {
+    from screenshotJar
+    into layout.projectDirectory.dir('run/screenshot/mods')
+}
+
+var screenshotPicture = layout.projectDirectory.file('run/screenshot/screenshots/slice.png')
+tasks.named('runScreenshot') {
+    group = 'verification'
+    description = 'Starts the client, pictures the slice in a fresh flat world and exits; fails without the picture.'
+    dependsOn installScreenshotMod
+    // The mod gives up after 5 minutes; this catches a game that hangs before the mod runs.
+    timeout = java.time.Duration.ofMinutes(10)
+    doFirst {
+        // A picture or world of an earlier run must not stand in for this one.
+        screenshotPicture.asFile.delete()
+        project.delete(layout.projectDirectory.dir('run/screenshot/saves/screenshot-slice'))
+    }
+    doLast {
+        if (!screenshotPicture.asFile.isFile() || screenshotPicture.asFile.length() == 0) {
+            throw new GradleException("The client exited without a picture at ${screenshotPicture.asFile}; see run/screenshot/logs/latest.log")
+        }
+        logger.lifecycle("Screenshot: ${screenshotPicture.asFile}")
+    }
+}
+
+// The pipeline compiles the screenshot run, so it does not rot unseen; it does not start it.
+tasks.named('verify') { dependsOn screenshotJar }
