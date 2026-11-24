@@ -21,6 +21,7 @@ import io.github.osasuwu.farmingevolution.plant.Requirements;
 import io.github.osasuwu.farmingevolution.plant.WildBerryBushBlock;
 import io.github.osasuwu.farmingevolution.plant.WildFlaxBlock;
 import io.github.osasuwu.farmingevolution.recipe.RecipeGraphDump;
+import io.github.osasuwu.farmingevolution.store.SeedStore;
 import io.github.osasuwu.farmingevolution.vanilla.VanillaRemoval;
 import java.io.IOException;
 import java.io.InputStream;
@@ -166,6 +167,7 @@ public final class FarmingEvolution {
         modBus.addListener(REQUIREMENTS::addPack);
         NeoForge.EVENT_BUS.addListener(RecipeGraphDump::onServerStarted);
         VanillaRemoval.register(modBus);
+        SeedStore.register(modBus);
     }
 
     /**
