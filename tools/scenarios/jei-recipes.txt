@@ -1,0 +1,20 @@
+# Checklist #31: the recipes of the analyzer and of the belt in JEI. JEI opens the recipes of the
+# item under the pointer on R. The belt must show only the recipe of six strong-flax fibres
+# (kubejs/server_scripts/belt.js), no recipe of Create's own (dried kelp).
+# Player inventory slots: 0 result, 1-4 grid, 5-8 armour, 9-35 inventory, 36-44 hotbar, 45 off hand.
+# Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/jei-recipes.txt
+command /clear @s
+command /give @s farmingevolution:analyzer
+command /give @s create:belt_connector
+inventory
+# The analyzer is in hotbar slot 1 (slot 36), the belt in slot 2 (slot 37).
+hover 36
+key r
+shot jei-analyzer-recipe
+# Escape in JEI goes back to the inventory.
+key escape
+hover 37
+key r
+shot jei-belt-recipe
+key escape
+close

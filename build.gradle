@@ -40,6 +40,15 @@ repositories {
         url = 'https://jitpack.io'
         content { includeGroup 'com.github.rtyley' }
     }
+    maven {
+        name = 'JEI'
+        url = 'https://maven.blamejared.com/'
+        content {
+            includeGroup 'mezz.jei'
+            // The config library of JEI's author, a dependency of JEI.
+            includeGroup 'net.mezzdev.config'
+        }
+    }
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -136,6 +145,11 @@ dependencies {
     runtimeOnly "com.tterrag.registrate:Registrate:${registrate_version}"
     // Coordinates: https://github.com/KubeJS-Mods/KubeJS/tree/2101#readme
     runtimeOnly "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
+    // JEI (MIT), dev-only: recipes in runClient and runControl (issue #74). Not in the mod jar,
+    // and the mod's code does not compile against it. It is in every run, the servers included:
+    // the runs share one runtime classpath, and JEI is a mod for both sides.
+    // Coordinates: https://github.com/mezz/JustEnoughItems/wiki/Getting-Started-%5BMinecraft-1.21-and-1.21.1%5D
+    runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
