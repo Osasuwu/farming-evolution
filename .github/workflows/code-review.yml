@@ -163,18 +163,23 @@ jobs:
                `verdict: blocking`, then one `finding: <class> | <file> | <text>`
                line per finding. Spell each class exactly as REVIEW.md lists
                it. Write nothing else into the file.
+          # Headless: any tool absent here is DENIED. Read verbs only, one
+          # entry each: a wholesale `git` grant admits `git config` and
+          # `git -c`, which execute programs. The only write grant is `Edit`
+          # on the verdict file. These patterns steer the reviewer; they are
+          # not a boundary. The read-only job token and the env scrub above
+          # bound what leaves the runner. The verdict grant is absolute
+          # (`//` after expansion): `./` is cwd-relative.
+          # `--permission-mode default` makes that list strict: the action
+          # otherwise starts the reviewer in auto mode, where a safety review
+          # decides what the list does not name (the action's docs/usage.md,
+          # "Permission Mode").
+          # No `#` comment inside `claude_args`: the action puts its own flags
+          # in front of this text on the same line, so a comment on the first
+          # line is no longer a full comment line, and its tokenizer then takes
+          # everything after the `#` as one comment. Every flag below was lost
+          # that way and each call that needs permission was denied (#36).
           claude_args: |
-            # Headless: any tool absent here is DENIED. Read verbs only, one
-            # entry each: a wholesale `git` grant admits `git config` and
-            # `git -c`, which execute programs. The only write grant is `Edit`
-            # on the verdict file. These patterns steer the reviewer; they are
-            # not a boundary. The read-only job token and the env scrub above
-            # bound what leaves the runner. The verdict grant is absolute
-            # (`//` after expansion): `./` is cwd-relative.
-            # `--permission-mode default` makes that list strict: the action
-            # otherwise starts the reviewer in auto mode, where a safety review
-            # decides instead of these rules and denied both `gh pr view` and
-            # the verdict edit (#36; the action's docs/usage.md, "Permission Mode").
             --permission-mode default
             --allowed-tools "Read,Grep,Glob,Edit(/${{ github.workspace }}/.review/verdict.txt),Bash(git log:*),Bash(git show:*),Bash(git diff:*),Bash(git blame:*),Bash(git status:*),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git merge-base:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr list:*),Bash(gh pr checks:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(wc:*),Bash(head:*),Bash(tail:*),Bash(cat:*),Bash(nl:*)"
             --disallowed-tools "Bash(gh pr merge:*)" "Bash(gh pr close:*)" "Bash(gh pr edit:*)" "Bash(gh pr reopen:*)" "Bash(gh pr review:*)" "Bash(gh pr ready:*)" "Bash(gh pr create:*)" "Bash(gh pr comment:*)" "Bash(gh issue create:*)" "Bash(gh issue edit:*)" "Bash(gh issue close:*)" "Bash(gh issue reopen:*)" "Bash(gh issue comment:*)" "Bash(git push:*)" "Bash(git commit:*)" "Bash(git merge:*)" "Bash(git reset:*)" "Bash(git rebase:*)" "Bash(git cherry-pick:*)" "Bash(git stash:*)" "Bash(git clean:*)" "Bash(git rm:*)" "Bash(git mv:*)" "Bash(git apply:*)" "Bash(git am:*)" "Bash(git checkout:*)" "Bash(git switch:*)" "Bash(git restore:*)" "Bash(git *--ou*)"
