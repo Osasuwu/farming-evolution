@@ -117,7 +117,9 @@ class RestoreTest {
     void knownAlleleTakesItsDominanceFromPackData() {
         Individual saved = genome(Chromosome.pure(new Allele.Named("flax", false)), strength(5, 5),
                 Chromosome.pure(new Allele.Named("tall", false)));
+        List<String> reported = new ArrayList<>();
         assertEquals(genome(Chromosome.pure(FLAX), strength(5, 5), Chromosome.pure(TALL)),
-                BREEDING.restore(saved, message -> { }));
+                BREEDING.restore(saved, reported::add));
+        assertEquals(List.of(), reported);
     }
 }

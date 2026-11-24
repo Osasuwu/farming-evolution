@@ -198,6 +198,22 @@ public final class VarietyProductGameTests {
         helper.succeed();
     }
 
+    /** A plant set by a command or by world generation has no genome, so no species and no product. */
+    @GameTest(template = "empty")
+    public static void ripePlantWithoutGenomeGivesOnlySeeds(GameTestHelper helper) {
+        helper.setBlock(SOIL, Blocks.FARMLAND);
+        helper.setBlock(PLANT, FarmingEvolution.CROP.get().defaultBlockState());
+        ripen(helper);
+        breakPlant(helper);
+        List<String> dropped = helper.getLevel()
+                .getEntitiesOfClass(ItemEntity.class, new AABB(helper.absolutePos(PLANT)).inflate(3)).stream()
+                .map(item -> BuiltInRegistries.ITEM.getKey(item.getItem().getItem()) + " x" + item.getItem().getCount())
+                .toList();
+        expect("a ripe plant without a genome", dropped,
+                List.of("farmingevolution:seeds x1", "farmingevolution:seeds x1"));
+        helper.succeed();
+    }
+
     /**
      * Two plants with different genomes that give the same product: the two items are one
      * stack, because nothing of the plant is written on them.

@@ -113,7 +113,11 @@ public final class FarmingEvolution {
                 throw new IllegalStateException("The mod has no pack data at " + path);
             }
             try (Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
-                return PackData.parse(reader);
+                PackData pack = PackData.parse(reader);
+                if (pack.species().isEmpty()) {
+                    throw new IllegalStateException("Pack data at " + path + " has no species");
+                }
+                return pack;
             }
         } catch (IOException e) {
             throw new UncheckedIOException("Pack data at " + path + " could not be read", e);
