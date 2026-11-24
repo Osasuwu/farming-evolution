@@ -2,8 +2,9 @@
 // ingredient is the item tag the mod builds for the requirement, so the recipe takes the
 // product of every variety that passes it and of no other. Placeholder balance: the recipe
 // exists so that the check pipeline can send a requirement through a recipe
-// (RequirementGameTests.recipeNamingRequirementTagTakesProductOfPassingVarietyOnly expects
-// exactly 1 string per fibre).
+// (RequirementGameTests.recipeNamingRequirementTagTakesProductOfPassingVarietyOnly and
+// CreateMachineGameTests.millstoneTurnsHarvestOfFlaxVarietyIntoString expect exactly 1 string
+// per fibre).
 ServerEvents.recipes(event => {
   event.custom({
     type: 'create:milling',
