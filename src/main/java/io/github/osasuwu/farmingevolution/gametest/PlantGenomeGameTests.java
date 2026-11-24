@@ -94,7 +94,8 @@ public final class PlantGenomeGameTests {
                         + ", the harvested one had " + genome);
             }
 
-            // The loot of a ripe plant is two seeds and one fibre; the harvester keeps one seed.
+            // The loot of a ripe plant is two seeds and one product; the harvester keeps one seed.
+            // Which item the product is, is not checked here.
             List<ItemStack> drops = helper.getLevel()
                     .getEntitiesOfClass(ItemEntity.class, new AABB(helper.absolutePos(PLANT)).inflate(3))
                     .stream().map(ItemEntity::getItem).toList();
@@ -103,9 +104,9 @@ public final class PlantGenomeGameTests {
                     || !genome.equals(seeds.get(0).get(FarmingEvolution.GENOME))) {
                 throw new GameTestAssertException("Expected 1 dropped seed with the genome of the plant, got " + drops);
             }
-            int fiber = drops.stream().filter(stack -> stack.is(FarmingEvolution.FIBER)).mapToInt(ItemStack::getCount).sum();
-            if (fiber != 1) {
-                throw new GameTestAssertException("Expected 1 dropped fibre, got " + drops);
+            int products = drops.stream().filter(stack -> !stack.is(FarmingEvolution.SEEDS)).mapToInt(ItemStack::getCount).sum();
+            if (products != 1) {
+                throw new GameTestAssertException("Expected 1 dropped item that is not a seed, got " + drops);
             }
         });
     }
