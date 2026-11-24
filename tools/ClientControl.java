@@ -10,9 +10,12 @@
 // Exit code: 0 ok, 1 an action failed (reply starts with "error"), 2 no client to talk to.
 
 import java.io.BufferedReader;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -26,6 +29,15 @@ import java.util.List;
 public class ClientControl {
     /** The game ends an action that takes longer itself; this only guards against a stuck game. */
     private static final int REPLY_TIMEOUT_MILLIS = 11 * 60 * 1000;
+
+    /**
+     * Where the replies are printed. In a console window Java writes in the console's code page
+     * itself. When the output goes to a pipe (an agent's shell, | Select-String, a file), Java
+     * would write in the system's ANSI code page (Cp1251 on a Russian Windows), and PowerShell,
+     * set to UTF-8, turned "·" and Cyrillic into "�" (issue #78); so a pipe gets UTF-8.
+     */
+    private static final PrintStream OUT = System.console() != null ? System.out
+            : new PrintStream(new FileOutputStream(FileDescriptor.out), true, StandardCharsets.UTF_8);
 
     public static void main(String[] args) throws Exception {
         int port = 25599;
@@ -80,7 +92,7 @@ public class ClientControl {
             if (line.isEmpty() || line.startsWith("#")) {
                 continue;
             }
-            System.out.println("> " + line);
+            OUT.println("> " + line);
             int code = send(port, line);
             if (code != 0) {
                 return code;
@@ -94,7 +106,7 @@ public class ClientControl {
         while (System.currentTimeMillis() < deadline) {
             try {
                 String reply = exchange(port, "state");
-                System.out.print(reply);
+                OUT.print(reply);
                 return reply.startsWith("ok") ? 0 : 1;
             } catch (IOException e) {
                 Thread.sleep(1000);
@@ -107,7 +119,7 @@ public class ClientControl {
     private static int send(int port, String line) {
         try {
             String reply = exchange(port, line);
-            System.out.print(reply);
+            OUT.print(reply);
             return reply.startsWith("ok") ? 0 : 1;
         } catch (ConnectException e) {
             System.err.println("no client on 127.0.0.1:" + port + "; start it with gradlew runControl and wait with --wait-ready");

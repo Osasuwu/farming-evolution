@@ -1,0 +1,51 @@
+# Issue #78: the small fixes of the client control, each checked on its own.
+# Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/control-fixes.txt
+command /time set day
+command /gamerule doDaylightCycle false
+command /clear @s
+command /kill @e[type=minecraft:item]
+# close with no screen open does not stop the scenario.
+close
+close
+# lookat with whole numbers names the farmland under a crop, not the crop above it. In a field
+# the farmland shows in the thin gap under the crop, over the farmland in front of it. (A lone
+# farmland in grass is hidden whole from here: the crop covers its top, the grass its side.)
+tp 0.5 -60 0.5 0 30
+command /fill -1 -61 2 1 -61 4 minecraft:farmland
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:7,inactive:4}}}] 4
+slot 1
+lookat 0 -61 3
+use
+# The state line must read target=minecraft:farmland...@0,-61,3 (before #78: the crop at -60).
+lookat 0 -61 3
+shot lookat-farmland-under-crop
+lookat 0 -60 3
+shot lookat-crop
+# A full block under another: the side of the lower one, not the top of the upper one.
+command /fill 2 -60 3 2 -59 3 minecraft:stone
+lookat 2 -60 3
+shot lookat-lower-stone
+lookat 2 -59 3
+# use right after use shift: the seed store steps the condition forward, back, forward.
+tp 4.5 -60 0.5 0 30
+command /give @s farmingevolution:seed_store
+slot 2
+lookat 4 -61 3
+use
+slot 3
+lookat 4 -60 3
+use
+use shift
+use
+shot use-after-use-shift
+use shift
+use
+# slots shows the genome of the seeds in hotbar slot 1 (inventory slot 36).
+slots
+# Drops: three stacks thrown on the ground, then counted.
+command /summon minecraft:item ~2 ~ ~ {PickupDelay:32767s,Item:{id:"farmingevolution:wild_berries",count:3}}
+command /summon minecraft:item ~2 ~ ~1 {PickupDelay:32767s,Item:{id:"farmingevolution:wild_berries",count:2}}
+command /summon minecraft:item ~-2 ~ ~ {PickupDelay:32767s,Item:{id:"minecraft:string",count:5}}
+wait 20
+drops
+drops 1

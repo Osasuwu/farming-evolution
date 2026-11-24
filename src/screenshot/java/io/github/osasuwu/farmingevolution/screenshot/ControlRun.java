@@ -6,14 +6,22 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.tutorial.TutorialSteps;
+import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -21,6 +29,7 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
@@ -250,6 +259,8 @@ public final class ControlRun {
     private void reply(Minecraft minecraft, String head, Path picture) {
         try {
             replyUnchecked(minecraft, head, picture);
+        } catch (ControlActions.ActionException e) {
+            fail(minecraft, e.getMessage());
         } catch (RuntimeException e) {
             // The reply must reach the agent even if reading the game state failed.
             LOGGER.error("Client control: reply to {} failed", action.line(), e);
@@ -258,6 +269,14 @@ public final class ControlRun {
     }
 
     private void replyUnchecked(Minecraft minecraft, String head, Path picture) {
+        // Read before the new chat lines are handed out, so an error here loses none of them.
+        StringBuilder jei = new StringBuilder();
+        if (action.extra() == ControlActions.Extra.JEI) {
+            if (!ModList.get().isLoaded("jei")) {
+                throw new ControlActions.ActionException("JEI is not in this run");
+            }
+            ControlJei.describe(ControlActions.jeiCheck(action.line()), jei);
+        }
         StringBuilder out = new StringBuilder(head).append('\n');
         if (picture != null) {
             out.append("screenshot ").append(picture).append('\n');
@@ -274,6 +293,10 @@ public final class ControlRun {
         if (action.extra() == ControlActions.Extra.SLOTS) {
             slots(minecraft, out);
         }
+        if (action.extra() == ControlActions.Extra.DROPS) {
+            drops(minecraft, ControlActions.dropsRadius(action.line()), out);
+        }
+        out.append(jei);
         if (minecraft.player != null) {
             out.append("state ").append(state(minecraft)).append('\n');
         }
@@ -300,6 +323,8 @@ public final class ControlRun {
         out.append(" off=").append(item(player.getItemInHand(InteractionHand.OFF_HAND)));
         out.append(" mode=").append(mc.gameMode.getPlayerMode().getName());
         out.append(" sneaking=").append(player.isShiftKeyDown());
+        out.append(String.format(Locale.ROOT, " health=%.1f food=%d saturation=%.1f",
+                player.getHealth(), player.getFoodData().getFoodLevel(), player.getFoodData().getSaturationLevel()));
         return out.toString();
     }
 
@@ -335,10 +360,41 @@ public final class ControlRun {
                 .append(", slots 0-").append(menu.slots.size() - 1).append('\n');
         for (var slot : menu.slots) {
             if (slot.hasItem()) {
-                out.append("slot ").append(slot.index).append(' ').append(item(slot.getItem())).append('\n');
+                out.append("slot ").append(slot.index).append(' ').append(item(slot.getItem()))
+                        .append(components(mc, slot.getItem())).append('\n');
             }
         }
-        out.append("carried ").append(item(menu.getCarried())).append('\n');
+        out.append("carried ").append(item(menu.getCarried())).append(components(mc, menu.getCarried())).append('\n');
+    }
+
+    /**
+     * The components a stack has beyond its item's defaults, as /give writes them (the genome
+     * of a seed, a custom name, damage), or nothing when it has none.
+     */
+    private static String components(Minecraft mc, ItemStack stack) {
+        DataComponentPatch patch = stack.getComponentsPatch();
+        if (stack.isEmpty() || patch.isEmpty()) {
+            return "";
+        }
+        return DataComponentPatch.CODEC.encodeStart(mc.level.registryAccess().createSerializationContext(NbtOps.INSTANCE), patch)
+                .mapOrElse(tag -> " components=" + tag, error -> " components=(" + error.message() + ")");
+    }
+
+    /** The items lying on the ground within the radius of the player, nearest first, and the total of each item. */
+    private static void drops(Minecraft mc, double radius, StringBuilder out) {
+        var player = mc.player;
+        List<ItemEntity> items = new ArrayList<>(mc.level.getEntitiesOfClass(ItemEntity.class,
+                player.getBoundingBox().inflate(radius), entity -> entity.distanceTo(player) <= radius));
+        items.sort(Comparator.comparingDouble(entity -> entity.distanceTo(player)));
+        Map<String, Integer> totals = new TreeMap<>();
+        for (ItemEntity entity : items) {
+            ItemStack stack = entity.getItem();
+            out.append(String.format(Locale.ROOT, "drop %s at %.2f %.2f %.2f", item(stack), entity.getX(), entity.getY(), entity.getZ()))
+                    .append('\n');
+            totals.merge(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(), stack.getCount(), Integer::sum);
+        }
+        out.append(String.format(Locale.ROOT, "drops %d on the ground within %.1f blocks", items.size(), radius)).append('\n');
+        totals.forEach((id, count) -> out.append("drops-total ").append(count).append('x').append(id).append('\n'));
     }
 
     private void giveUpIfLate(Minecraft minecraft) {

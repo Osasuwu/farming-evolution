@@ -328,6 +328,9 @@ neoForge.addModdingDependenciesTo(sourceSets.screenshot)
 dependencies {
     screenshotImplementation sourceSets.main.output
     screenshotImplementation project(':breeding')
+    // The jei action of the client control reads JEI's item list through its API (issue #78).
+    // Compile only: at run time JEI comes from the mods folder of the client runs.
+    screenshotCompileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
 }
 
 var screenshotJar = tasks.register('screenshotJar', Jar) {
