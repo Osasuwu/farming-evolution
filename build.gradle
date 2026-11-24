@@ -66,6 +66,9 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
             // The mod writes the recipes of the started server here for checkRecipeGraph below.
             systemProperty 'farmingevolution.recipeGraphDump', project.file('run/gametest/recipe-graph-dump.json').absolutePath
+            // Test data of the build: pack data some GameTests need and a player must not see.
+            // Only this run adds it to the mod's pack data; it is not in the jar.
+            systemProperty 'farmingevolution.gameTestPackData', project.file('src/gametest/pack.json').absolutePath
         }
 
         // Dedicated server used by the check pipeline: boots in its own directory,
@@ -241,6 +244,7 @@ tasks.named('verify') { dependsOn ':checks:simulateBreeding' }
 var recipeGraphDump = layout.projectDirectory.file('run/gametest/recipe-graph-dump.json')
 // A dump of an earlier run must not stand in for one this run did not write.
 tasks.named('runGameTestServer') { doFirst { recipeGraphDump.asFile.delete() } }
+tasks.named('runGameTestServer') { inputs.file 'src/gametest/pack.json' }
 var checkRecipeGraph = tasks.register('checkRecipeGraph', JavaExec) {
     group = 'verification'
     description = 'Fails when an input of a required recipe cannot be made from the starting resources.'
