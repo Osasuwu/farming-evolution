@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+import net.minecraft.client.tutorial.TutorialSteps;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.level.GameRules;
@@ -56,6 +57,7 @@ public final class ScreenshotRun {
     private final Path output;
     private final long startNanos = System.nanoTime();
     private final AtomicBoolean sceneBuilt = new AtomicBoolean();
+    private final AtomicBoolean sceneFailed = new AtomicBoolean();
     private Stage stage = Stage.WAITING_FOR_MENU;
     private int settledTicks;
 
@@ -84,6 +86,8 @@ public final class ScreenshotRun {
                 if (minecraft.getOverlay() == null && minecraft.screen != null && minecraft.level == null) {
                     // A background window must not pause the integrated server or cover the picture.
                     minecraft.options.pauseOnLostFocus = false;
+                    // The tutorial toast of a fresh game directory must not cover the corner of the picture.
+                    minecraft.options.tutorialStep = TutorialSteps.NONE;
                     createWorld(minecraft);
                     stage = Stage.JOINING;
                 }
@@ -93,8 +97,13 @@ public final class ScreenshotRun {
                 if (minecraft.player != null && minecraft.level != null && server != null) {
                     var uuid = minecraft.player.getUUID();
                     server.execute(() -> {
-                        SliceScene.build(server, server.getPlayerList().getPlayer(uuid));
-                        sceneBuilt.set(true);
+                        try {
+                            SliceScene.build(server, server.getPlayerList().getPlayer(uuid));
+                            sceneBuilt.set(true);
+                        } catch (RuntimeException e) {
+                            LOGGER.error("Screenshot run: the scene could not be built; closing the game without a picture", e);
+                            sceneFailed.set(true);
+                        }
                     });
                     stage = Stage.BUILDING;
                 }
@@ -102,6 +111,8 @@ public final class ScreenshotRun {
             case BUILDING -> {
                 if (sceneBuilt.get()) {
                     stage = Stage.SETTLING;
+                } else if (sceneFailed.get()) {
+                    stage = Stage.QUITTING;
                 }
             }
             case SETTLING -> {

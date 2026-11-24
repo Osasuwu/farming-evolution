@@ -26,7 +26,7 @@ final class SliceScene {
     /** The crop row runs across the view, this many blocks in front of the player. */
     private static final int CROP_ROW = 5;
     private static final int WILD_ROW = 7;
-    /** Crops from age 1 to 7, one per block, left to right. */
+    /** The wild flax row spans this many blocks either side of the player. */
     private static final int HALF_WIDTH = 3;
 
     private SliceScene() {
@@ -51,8 +51,10 @@ final class SliceScene {
 
         Individual wildFlax = FarmingEvolution.BREEDING.wild(WildFlaxBlock.SPECIES, Sex.NONE);
         BlockState farmland = Blocks.FARMLAND.defaultBlockState().setValue(FarmBlock.MOISTURE, FarmBlock.MAX_MOISTURE);
-        for (int dx = -HALF_WIDTH; dx <= HALF_WIDTH; dx++) {
-            int age = HALF_WIDTH - dx + 1;
+        // Every growth stage, one crop per block: age 0 on the left of the picture, the ripe one on the right.
+        int maxAge = FarmingEvolution.CROP.get().getMaxAge();
+        for (int age = 0; age <= maxAge; age++) {
+            int dx = HALF_WIDTH + 1 - age;
             BlockPos soil = new BlockPos(x0 + dx, ground, z0 + CROP_ROW);
             level.setBlock(soil, farmland, 3);
             BlockPos crop = soil.above();
