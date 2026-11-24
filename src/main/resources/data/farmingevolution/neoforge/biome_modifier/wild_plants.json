@@ -1,0 +1,9 @@
+{
+  "type": "neoforge:add_features",
+  "biomes": "#minecraft:is_overworld",
+  "features": [
+    "farmingevolution:wild_flax_patch",
+    "farmingevolution:wild_berry_bush_patch"
+  ],
+  "step": "vegetal_decoration"
+}

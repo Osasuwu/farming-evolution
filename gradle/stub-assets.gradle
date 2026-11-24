@@ -1,0 +1,99 @@
+// ---------------------------------------------------------------------------
+// Placeholder look of the flax slice (issue #25): blockstates, models and 16x16 textures
+// drawn by this code at build time, so the repository holds no image files. The texture
+// pipeline of issue #19 replaces it. Nothing here comes from Minecraft's or another mod's
+// sprites: every pixel is set below.
+// ---------------------------------------------------------------------------
+
+import groovy.json.JsonOutput
+import java.awt.image.BufferedImage
+import javax.imageio.ImageIO
+
+var stubAssetsDir = layout.buildDirectory.dir('generated/sources/stubAssets')
+
+var generateStubAssets = tasks.register('generateStubAssets') {
+    group = 'build'
+    description = 'Draws the placeholder textures and writes the models of the flax slice.'
+    outputs.dir stubAssetsDir
+    inputs.file 'gradle/stub-assets.gradle'
+    doLast {
+        File root = stubAssetsDir.get().dir('assets/farmingevolution').asFile
+        root.deleteDir()
+
+        def json = { String path, Object value ->
+            File file = new File(root, path)
+            file.parentFile.mkdirs()
+            file.text = JsonOutput.prettyPrint(JsonOutput.toJson(value)) + '\n'
+        }
+        def rgb = { String hex -> Integer.parseUnsignedInt('ff' + hex, 16) }
+        // A texture from a list of strokes: [colour, [x, y], ...]; every point is one pixel.
+        def png = { String path, List strokes ->
+            BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB)
+            strokes.each { stroke ->
+                int colour = rgb(stroke[0])
+                stroke.drop(1).each { point -> image.setRGB(point[0], point[1], colour) }
+            }
+            File file = new File(root, "textures/${path}.png")
+            file.parentFile.mkdirs()
+            ImageIO.write(image, 'png', file)
+        }
+        def column = { int x, int top, int bottom -> (top..bottom).collect { [x, it] } }
+
+        // A stem every three pixels, as tall as the stage allows; the last stages flower.
+        def stems = { int height, String flower ->
+            List strokes = [['4f8a2b'] + [2, 5, 8, 11, 14].collectMany { x -> column(x, 16 - height, 15) }]
+            if (flower) {
+                strokes << [flower] + [2, 5, 8, 11, 14].collect { x -> [x, 16 - height] }
+            }
+            strokes
+        }
+        def cutout = 'minecraft:cutout'
+
+        png('block/wild_flax', stems(11, '5b7fd6'))
+        json('blockstates/wild_flax.json', [variants: ['': [model: 'farmingevolution:block/wild_flax']]])
+        json('models/block/wild_flax.json',
+                [parent: 'minecraft:block/cross', render_type: cutout, textures: [cross: 'farmingevolution:block/wild_flax']])
+
+        List leaves = ['3d6b2a'] + (3..12).collectMany { x -> ((16 - (x % 3) - 9)..15).collect { y -> [x, y] } }
+        List berries = ['8e1f3c', [4, 9], [7, 11], [10, 8], [11, 12], [5, 13]]
+        png('block/wild_berry_bush_empty', [leaves])
+        png('block/wild_berry_bush_ripe', [leaves, berries])
+        json('blockstates/wild_berry_bush.json', [variants: [
+                'age=0': [model: 'farmingevolution:block/wild_berry_bush_empty'],
+                'age=1': [model: 'farmingevolution:block/wild_berry_bush_ripe']]])
+        ['empty', 'ripe'].each { stage ->
+            json("models/block/wild_berry_bush_${stage}.json", [parent: 'minecraft:block/cross', render_type: cutout,
+                    textures: [cross: "farmingevolution:block/wild_berry_bush_${stage}"]])
+        }
+
+        Map cropStates = [:]
+        (0..7).each { age ->
+            png("block/crop_stage${age}", stems(2 + age * 2, age >= 6 ? 'c9a55a' : null))
+            json("models/block/crop_stage${age}.json", [parent: 'minecraft:block/crop', render_type: cutout,
+                    textures: [crop: "farmingevolution:block/crop_stage${age}"]])
+            cropStates["age=${age}"] = [model: "farmingevolution:block/crop_stage${age}"]
+        }
+        json('blockstates/crop.json', [variants: cropStates])
+
+        // A bundle of fibre: strands across the item, tied in the middle.
+        def bundle = { String strand, String tie ->
+            [[strand] + (3..12).collectMany { i -> [[i, 15 - i], [i + 1, 15 - i], [i, 14 - i]] },
+             [tie, [7, 7], [8, 7], [7, 8], [8, 8], [6, 8], [9, 7]]]
+        }
+        Map items = [
+                seeds           : [['7a5230', [5, 6], [6, 6], [9, 5], [10, 5], [7, 10], [8, 10], [4, 11], [11, 10]]],
+                wild_berries    : [['8e1f3c', [5, 7], [6, 7], [5, 8], [6, 8], [9, 6], [10, 6], [9, 7], [10, 7], [7, 10], [8, 10],
+                                   [7, 11], [8, 11]], ['3d6b2a', [7, 4], [8, 5]]],
+                wild_flax_fiber : bundle('b8ab8a', '6b5a3a'),
+                fiber_flax_fiber: bundle('cdb37a', '6b5a3a'),
+                strong_flax     : bundle('e0c25a', '8a3b1f'),
+        ]
+        items.each { name, strokes ->
+            png("item/${name}", strokes)
+            json("models/item/${name}.json", [parent: 'minecraft:item/generated', textures: [layer0: "farmingevolution:item/${name}"]])
+        }
+    }
+}
+
+sourceSets.main.resources.srcDir generateStubAssets
+neoForge.ideSyncTask generateStubAssets

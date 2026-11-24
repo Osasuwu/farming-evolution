@@ -1,9 +1,11 @@
 package io.github.osasuwu.farmingevolution.plant;
 
 import io.github.osasuwu.farmingevolution.FarmingEvolution;
+import io.github.osasuwu.farmingevolution.breeding.Environment;
 import io.github.osasuwu.farmingevolution.breeding.Individual;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
@@ -39,13 +41,36 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
      * item it is follows from the genome: a ripe plant gives one product of its variety, or of
      * its species when it fits no variety. Every way of harvesting asks for the drops here, a
      * hand and a machine alike. A plant without a genome has no species and gives no product.
+     *
+     * <p>The seeds of a ripe plant are its offspring: each seed is one cross of the plant with
+     * itself, so its traits may move off the parent's (CONCEPT.md, "Селекция": selection from
+     * wild populations, before crossing exists). An unripe plant gives back the seed it grew
+     * from unchanged.
      */
     @Override
     protected List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
-        List<ItemStack> drops = new ArrayList<>(super.getDrops(state, params));
-        if (isMaxAge(state) && params.getOptionalParameter(LootContextParams.BLOCK_ENTITY) instanceof PlantBlockEntity plant) {
-            plant.genome().map(FarmingEvolution.PRODUCTS::of).ifPresent(product -> drops.add(new ItemStack(product)));
+        List<ItemStack> loot = super.getDrops(state, params);
+        if (!isMaxAge(state) || !(params.getOptionalParameter(LootContextParams.BLOCK_ENTITY) instanceof PlantBlockEntity plant)
+                || plant.genome().isEmpty()) {
+            return loot;
         }
+        Individual genome = plant.genome().get();
+        // A genome set by a command has not been through the reading of a save; see Products.of.
+        Individual parent = FarmingEvolution.BREEDING.restore(genome, replaced -> { });
+        Random random = new Random(params.getLevel().random.nextLong());
+        List<ItemStack> drops = new ArrayList<>();
+        for (ItemStack stack : loot) {
+            if (!stack.is(FarmingEvolution.SEEDS)) {
+                drops.add(stack);
+                continue;
+            }
+            for (int i = 0; i < stack.getCount(); i++) {
+                ItemStack seed = stack.copyWithCount(1);
+                seed.set(FarmingEvolution.GENOME, FarmingEvolution.BREEDING.cross(parent, parent, Environment.NONE, random));
+                drops.add(seed);
+            }
+        }
+        drops.add(new ItemStack(FarmingEvolution.PRODUCTS.of(genome)));
         return drops;
     }
 

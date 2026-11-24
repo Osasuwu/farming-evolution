@@ -133,6 +133,9 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
 sourceSets.main.resources.srcDir generateModMetadata
 neoForge.ideSyncTask generateModMetadata
 
+// Placeholder blockstates, models and textures, drawn at build time.
+apply from: 'gradle/stub-assets.gradle'
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
