@@ -126,6 +126,11 @@ configurations {
     checksRuntime {
         canBeConsumed = false
     }
+    // Dev-only mods of the client runs alone, installed into their mods folders (clientModJars).
+    // Not part of any classpath: a mod on the runtime classpath is loaded by every run.
+    clientOnlyMods {
+        canBeConsumed = false
+    }
 }
 
 dependencies {
@@ -146,11 +151,19 @@ dependencies {
     // Coordinates: https://github.com/KubeJS-Mods/KubeJS/tree/2101#readme
     runtimeOnly "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
     // JEI (MIT), dev-only: recipes in runClient and runControl (issue #74). Not in the mod jar,
-    // and the mod's code does not compile against it. It is in every run, the servers included:
-    // the runs share one runtime classpath, and JEI is a mod for both sides.
+    // and the mod's code does not compile against it. Only the client runs get it (issue #76),
+    // through the mods folders of their game directories (clientModJars below): the GameTest
+    // server and the dedicated server of verify run without it, as a player's server does.
     // Coordinates: https://github.com/mezz/JustEnoughItems/wiki/Getting-Started-%5BMinecraft-1.21-and-1.21.1%5D
-    runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    clientOnlyMods "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 }
+
+// The jars of the client-only mods that go into a mods folder. JEI's POM also brings its
+// common, lib and gui jars and the config library's API, whose classes the two NeoForge jars
+// already carry, so only the NeoForge jars of JEI and of its required mezz_config are taken;
+// their versions are the ones JEI's POM names.
+var clientModJarNames = ['jei-*-neoforge-*.jar', 'mezz_config-*-neoforge-*.jar']
+var clientModJars = configurations.clientOnlyMods.asFileTree.matching { include clientModJarNames }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
     var replaceProperties = [
@@ -197,6 +210,19 @@ tasks.named('jar') {
     }
     tasks.named(runTask) { dependsOn sync }
 }
+
+// The client-only mods of runClient (see clientOnlyMods). Its game directory run/ is the
+// author's, so the sync deletes only jars of the client-only mods it no longer installs
+// (an older version after a bump) and keeps every other file in run/mods.
+var installClientMods = tasks.register('installClientMods', Sync) {
+    from clientModJars
+    into layout.projectDirectory.dir('run/mods')
+    preserve {
+        include '**'
+        exclude clientModJarNames
+    }
+}
+tasks.named('runClient') { dependsOn installClientMods }
 
 // ---------------------------------------------------------------------------
 // Check pipeline. One command runs everything: gradlew verify
@@ -313,6 +339,7 @@ var screenshotJar = tasks.register('screenshotJar', Jar) {
 
 var installScreenshotMod = tasks.register('installScreenshotMod', Sync) {
     from screenshotJar
+    from clientModJars
     into layout.projectDirectory.dir('run/screenshot/mods')
 }
 
@@ -348,6 +375,7 @@ tasks.named('verify') { dependsOn screenshotJar }
 
 var installControlMod = tasks.register('installControlMod', Sync) {
     from screenshotJar
+    from clientModJars
     into layout.projectDirectory.dir('run/control/mods')
 }
 
