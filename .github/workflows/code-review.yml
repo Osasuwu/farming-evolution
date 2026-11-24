@@ -186,8 +186,11 @@ jobs:
 
       # The action hides the reviewer's output, and a bare count of denied calls
       # does not say why no verdict was written (#36). Printed: each denied
-      # call and the reviewer's closing message. Same exposure as the verdict
-      # below: text the reviewer composed, in a log that masks the job's secrets.
+      # call and the reviewer's closing message: text the reviewer composed, in
+      # a log that masks the job's secrets. Nothing is cut, since the runner
+      # masks whole values only. Every line carries a fixed prefix, as the
+      # verdict's lines do: a bare line starting with `::` would run as a
+      # workflow command, and a PR can steer what the reviewer writes.
       - name: Reviewer denials and closing message
         if: always() && steps.review.outputs.execution_file != ''
         env:
@@ -195,8 +198,8 @@ jobs:
         run: |
           jq -r '
             .[] | select(.type == "result")
-            | (.permission_denials[]? | "denied: \(.tool_name) \(.tool_input | tojson | .[0:600])"),
-              "closing message: \(.result // "" | tostring | .[0:3000])"
+            | (.permission_denials[]? | "denied: \(.tool_name) \(.tool_input | tojson)"),
+              (.result // "" | tostring | split("\n")[] | "closing message: \(.)")
           ' "$EXECUTION_FILE" || echo "::warning::could not read the reviewer's execution file"
 
       # Nothing may differ from the base checkout: the validator and REVIEW.md
