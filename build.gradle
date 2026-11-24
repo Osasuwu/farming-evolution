@@ -40,6 +40,15 @@ repositories {
         url = 'https://jitpack.io'
         content { includeGroup 'com.github.rtyley' }
     }
+    maven {
+        name = 'JEI'
+        url = 'https://maven.blamejared.com/'
+        content {
+            includeGroup 'mezz.jei'
+            // The config library of JEI's author, a dependency of JEI.
+            includeGroup 'net.mezzdev.config'
+        }
+    }
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -89,6 +98,17 @@ neoForge {
             programArguments.addAll '--width', '1280', '--height', '720'
         }
 
+        // Client an agent drives action by action (issue #74; tasks at the end of this file).
+        // The same dev-only jar as the screenshot run; its control mod acts only on this property.
+        control {
+            client()
+            gameDirectory = project.file('run/control')
+            systemProperty 'farmingevolution.control.port', (project.findProperty('controlPort') ?: '25599').toString()
+            systemProperty 'farmingevolution.control.screenshots', project.file('run/control/screenshots').absolutePath
+            systemProperty 'farmingevolution.control.idleMinutes', (project.findProperty('controlIdleMinutes') ?: '30').toString()
+            programArguments.addAll '--width', '1280', '--height', '720'
+        }
+
         configureEach {
             logLevel = org.slf4j.event.Level.INFO
         }
@@ -125,6 +145,11 @@ dependencies {
     runtimeOnly "com.tterrag.registrate:Registrate:${registrate_version}"
     // Coordinates: https://github.com/KubeJS-Mods/KubeJS/tree/2101#readme
     runtimeOnly "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
+    // JEI (MIT), dev-only: recipes in runClient and runControl (issue #74). Not in the mod jar,
+    // and the mod's code does not compile against it. It is in every run, the servers included:
+    // the runs share one runtime classpath, and JEI is a mod for both sides.
+    // Coordinates: https://github.com/mezz/JustEnoughItems/wiki/Getting-Started-%5BMinecraft-1.21-and-1.21.1%5D
+    runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
@@ -313,3 +338,42 @@ tasks.named('runScreenshot') {
 
 // The pipeline compiles the screenshot run, so it does not rot unseen; it does not start it.
 tasks.named('verify') { dependsOn screenshotJar }
+
+// ---------------------------------------------------------------------------
+// Client control (issue #74): gradlew runControl starts the client in a fresh flat survival
+// world and leaves it waiting for actions from tools/ClientControl.java on 127.0.0.1; each
+// action answers with a picture and the new chat lines. How to use it: README.md,
+// "Управление клиентом". The code is the control mod of the screenshot source set.
+// ---------------------------------------------------------------------------
+
+var installControlMod = tasks.register('installControlMod', Sync) {
+    from screenshotJar
+    into layout.projectDirectory.dir('run/control/mods')
+}
+
+var syncKubeJsForRunControl = tasks.register('syncKubeJsForRunControl', Sync) {
+    from layout.projectDirectory.dir('kubejs')
+    into layout.projectDirectory.dir('run/control/kubejs')
+}
+
+tasks.named('runControl') {
+    group = 'verification'
+    description = 'Starts the client in a fresh flat survival world, waiting for actions on 127.0.0.1 (README.md).'
+    dependsOn installControlMod, syncKubeJsForRunControl
+    // The mod closes the game after 30 idle minutes (-PcontrolIdleMinutes); this catches a game that hangs.
+    timeout = java.time.Duration.ofHours(4)
+    doFirst {
+        // Every start is a fresh world, and no picture of an earlier run is mistaken for this one's.
+        project.delete(layout.projectDirectory.dir('run/control/saves/control-world'))
+        project.delete(layout.projectDirectory.dir('run/control/screenshots'))
+    }
+}
+
+// The pipeline compiles the client of the control too, so it does not rot unseen.
+var compileClientControl = tasks.register('compileClientControl', JavaCompile) {
+    description = 'Compiles tools/ClientControl.java, the client of gradlew runControl.'
+    source = layout.projectDirectory.dir('tools').asFileTree.matching { include 'ClientControl.java' }
+    classpath = files()
+    destinationDirectory = layout.buildDirectory.dir('tools')
+}
+tasks.named('verify') { dependsOn screenshotJar, compileClientControl }

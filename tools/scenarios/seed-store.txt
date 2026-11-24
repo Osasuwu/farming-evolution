@@ -1,0 +1,24 @@
+# Checklist #31, "Хранилище семян": seeds go in with a right click holding them; a right click
+# with an empty hand steps the condition forward, Shift + right click back; the condition is
+# written above the hotbar (actionbar lines of the replies).
+# Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/seed-store.txt
+command /time set day
+command /gamerule doDaylightCycle false
+command /clear @s
+tp 4.5 -60 0.5 0 30
+command /give @s farmingevolution:seed_store
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:2,inactive:2}}}] 16
+# Place the store on the grass three blocks ahead (hotbar slot 1).
+slot 1
+lookat 4 -61 3
+use
+# Right click it holding the seeds (slot 2): the stack should leave the hand.
+slot 2
+lookat 4 -60 3
+use
+# Empty hand (slot 3): next condition, next again, then Shift: back one.
+slot 3
+use
+use
+use shift
+shot seed-store-condition

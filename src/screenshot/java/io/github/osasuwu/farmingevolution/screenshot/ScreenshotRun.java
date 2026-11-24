@@ -88,7 +88,7 @@ public final class ScreenshotRun {
                     minecraft.options.pauseOnLostFocus = false;
                     // The tutorial toast of a fresh game directory must not cover the corner of the picture.
                     minecraft.options.tutorialStep = TutorialSteps.NONE;
-                    createWorld(minecraft);
+                    createWorld(minecraft, WORLD_NAME);
                     stage = Stage.JOINING;
                 }
             }
@@ -145,12 +145,15 @@ public final class ScreenshotRun {
         }
     }
 
-    /** A flat, peaceful survival world: the slice is built on flat grass and nothing walks into the picture. */
-    private static void createWorld(Minecraft minecraft) {
-        LOGGER.info("Screenshot run: creating world {}", WORLD_NAME);
-        LevelSettings settings = new LevelSettings(WORLD_NAME, GameType.SURVIVAL, false, Difficulty.PEACEFUL, true,
+    /**
+     * A flat, peaceful survival world with commands allowed: the slice is built on flat grass and
+     * nothing walks into the picture. The client control run ({@link ControlRun}) starts in the same kind of world.
+     */
+    static void createWorld(Minecraft minecraft, String worldName) {
+        LOGGER.info("Creating world {}", worldName);
+        LevelSettings settings = new LevelSettings(worldName, GameType.SURVIVAL, false, Difficulty.PEACEFUL, true,
                 new GameRules(), WorldDataConfiguration.DEFAULT);
-        minecraft.createWorldOpenFlows().createFreshLevel(WORLD_NAME, settings, new WorldOptions(0L, false, false),
+        minecraft.createWorldOpenFlows().createFreshLevel(worldName, settings, new WorldOptions(0L, false, false),
                 registries -> registries.registryOrThrow(Registries.WORLD_PRESET)
                         .getHolderOrThrow(WorldPresets.FLAT).value().createWorldDimensions(),
                 minecraft.screen);
