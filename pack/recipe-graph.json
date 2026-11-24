@@ -1,5 +1,5 @@
 {
-  "required": ["*:kjs/*"],
+  "required": ["*:kjs/*", "farmingevolution:*", "farmingevolution:belt_connector"],
   "start": [
     {
       "item": "farmingevolution:seeds",
