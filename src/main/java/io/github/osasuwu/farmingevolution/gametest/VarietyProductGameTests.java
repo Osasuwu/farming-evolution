@@ -45,10 +45,12 @@ import org.apache.logging.log4j.core.config.Property;
 
 /**
  * What a harvest gives (CONCEPT.md, "Селекция → Сорт"): one product item, of the narrowest
- * variety the plant fits or of its species when it fits none. The plants are those of the
- * mod's pack data (src/main/resources/farmingevolution/pack.json): hemp has a strength and a
- * length of the fibre and the varieties strong_hemp (strength not below 7), long_hemp (length
- * not below 7) and select_hemp (both); wild_flax has no variety.
+ * variety the plant fits or of its species when it fits none. wild_flax is of the mod's pack
+ * data (src/main/resources/farmingevolution/pack.json) and has no variety. hemp is test data
+ * of the build (src/gametest/pack.json), added only in the GameTest run, so a player never
+ * sees it: it has a strength and a length of the fibre and the varieties strong_hemp
+ * (strength not below 7), long_hemp (length not below 7) and select_hemp (both). The client
+ * run has no hemp, so these tests fail there; they pass in the GameTest run.
  */
 @GameTestHolder(FarmingEvolution.MOD_ID)
 @PrefixGameTestTemplate(false)

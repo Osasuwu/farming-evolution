@@ -66,6 +66,9 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
             // The mod writes the recipes of the started server here for checkRecipeGraph below.
             systemProperty 'farmingevolution.recipeGraphDump', project.file('run/gametest/recipe-graph-dump.json').absolutePath
+            // Test data of the build: pack data some GameTests need and a player must not see.
+            // Only this run adds it to the mod's pack data; it is not in the jar.
+            systemProperty 'farmingevolution.gameTestPackData', project.file('src/gametest/pack.json').absolutePath
         }
 
         // Dedicated server used by the check pipeline: boots in its own directory,

@@ -1,8 +1,14 @@
 package io.github.osasuwu.farmingevolution;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import io.github.osasuwu.farmingevolution.breeding.Breeding;
 import io.github.osasuwu.farmingevolution.breeding.Individual;
 import io.github.osasuwu.farmingevolution.breeding.PackData;
+import io.github.osasuwu.farmingevolution.breeding.PackDataException;
 import io.github.osasuwu.farmingevolution.climate.ClimateSource;
 import io.github.osasuwu.farmingevolution.climate.GradientClimate;
 import io.github.osasuwu.farmingevolution.plant.GenomeCodec;
@@ -19,8 +25,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -151,21 +161,73 @@ public final class FarmingEvolution {
         VanillaRemoval.register(modBus);
     }
 
+    /**
+     * The system property naming a file of pack data added to the mod's own. Only the GameTest
+     * run sets it (build.gradle, run gameTestServer): the species and varieties some GameTests
+     * need but a player must not see live there (src/gametest/pack.json), outside the jar.
+     */
+    private static final String GAME_TEST_PACK_PROPERTY = MOD_ID + ".gameTestPackData";
+
     private static PackData readPack() {
         String path = "/" + MOD_ID + "/pack.json";
+        JsonObject root;
         try (InputStream stream = FarmingEvolution.class.getResourceAsStream(path)) {
             if (stream == null) {
                 throw new IllegalStateException("The mod has no pack data at " + path);
             }
             try (Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
-                PackData pack = PackData.parse(reader);
-                if (pack.species().isEmpty()) {
-                    throw new IllegalStateException("Pack data at " + path + " has no species");
-                }
-                return pack;
+                root = object(reader, path);
             }
         } catch (IOException e) {
             throw new UncheckedIOException("Pack data at " + path + " could not be read", e);
+        }
+        String extra = System.getProperty(GAME_TEST_PACK_PROPERTY);
+        if (extra != null) {
+            path += " with " + extra;
+            addEntries(root, extra);
+        }
+        PackData pack;
+        try {
+            pack = PackData.parse(new StringReader(root.toString()));
+        } catch (PackDataException e) {
+            throw new PackDataException("pack data at " + path + ": " + e.getMessage());
+        }
+        if (pack.species().isEmpty()) {
+            throw new IllegalStateException("Pack data at " + path + " has no species");
+        }
+        return pack;
+    }
+
+    /** Appends every list of the pack data file to the list of the same name in the root. */
+    private static void addEntries(JsonObject root, String file) {
+        try (Reader reader = Files.newBufferedReader(Path.of(file), StandardCharsets.UTF_8)) {
+            for (Map.Entry<String, JsonElement> list : object(reader, file).entrySet()) {
+                if (!list.getValue().isJsonArray()) {
+                    throw new PackDataException("pack data at " + file + ": " + list.getKey() + " is not a list");
+                }
+                if (!root.has(list.getKey())) {
+                    root.add(list.getKey(), new JsonArray());
+                }
+                if (!root.get(list.getKey()).isJsonArray()) {
+                    throw new PackDataException("pack data: " + list.getKey() + " is not a list");
+                }
+                root.getAsJsonArray(list.getKey()).addAll(list.getValue().getAsJsonArray());
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Pack data at " + file + " could not be read", e);
+        }
+    }
+
+    /** The JSON object a pack data file holds; anything else stops the game with the file named. */
+    private static JsonObject object(Reader reader, String file) {
+        try {
+            JsonElement element = JsonParser.parseReader(reader);
+            if (!element.isJsonObject()) {
+                throw new PackDataException("malformed pack data at " + file + ": not a JSON object");
+            }
+            return element.getAsJsonObject();
+        } catch (JsonParseException e) {
+            throw new PackDataException("malformed pack data at " + file + ": " + e);
         }
     }
 }

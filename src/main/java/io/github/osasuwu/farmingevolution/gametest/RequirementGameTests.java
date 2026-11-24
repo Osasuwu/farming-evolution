@@ -28,8 +28,9 @@ import net.neoforged.neoforge.items.ItemHandlerHelper;
  * a requirement is an item tag that holds the products of the varieties passing it. The
  * requirement is the one of the mod's pack data
  * (src/main/resources/farmingevolution/pack.json): strong_fiber, a fiber_flax with strength
- * not below 7. Of the varieties there, strong_flax passes it; strong_hemp and select_hemp
- * have the same strength but are of another species, long_hemp does not bound the strength.
+ * not below 7. Of the varieties there, strong_flax passes it. The GameTest run adds hemp
+ * (test data of the build, src/gametest/pack.json): strong_hemp and select_hemp have the same
+ * strength but are of another species, long_hemp does not bound the strength.
  */
 @GameTestHolder(FarmingEvolution.MOD_ID)
 @PrefixGameTestTemplate(false)
