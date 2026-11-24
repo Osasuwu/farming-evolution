@@ -9,6 +9,8 @@ import io.github.osasuwu.farmingevolution.plant.PlantBlockEntity;
 import io.github.osasuwu.farmingevolution.plant.Products;
 import io.github.osasuwu.farmingevolution.plant.RemovedPlants;
 import io.github.osasuwu.farmingevolution.plant.Requirements;
+import io.github.osasuwu.farmingevolution.plant.WildBerryBushBlock;
+import io.github.osasuwu.farmingevolution.plant.WildFlaxBlock;
 import io.github.osasuwu.farmingevolution.recipe.RecipeGraphDump;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemNameBlockItem;
 import net.minecraft.world.level.block.SoundType;
@@ -93,9 +96,36 @@ public final class FarmingEvolution {
                     .sound(SoundType.CROP)
                     .pushReaction(PushReaction.DESTROY)));
 
-    /** The seed: the item of the crop block, so placing it plants the crop. */
-    public static final DeferredItem<ItemNameBlockItem> SEEDS =
-            ITEMS.register("seeds", () -> new ItemNameBlockItem(CROP.get(), new Item.Properties()));
+    /**
+     * The seed: the item of the crop block, so placing it plants the crop. It is also food,
+     * the slice's food of the same line (CONCEPT.md, "Вертикальный срез").
+     */
+    public static final DeferredItem<ItemNameBlockItem> SEEDS = ITEMS.register("seeds", () -> new ItemNameBlockItem(
+            CROP.get(), new Item.Properties().food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.1F).build())));
+
+    /** The wild source of the flax line, found in the world; see {@link WildFlaxBlock}. */
+    public static final DeferredBlock<WildFlaxBlock> WILD_FLAX = BLOCKS.register("wild_flax", () -> new WildFlaxBlock(
+            BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.PLANT)
+                    .noCollission()
+                    .randomTicks()
+                    .instabreak()
+                    .sound(SoundType.GRASS)
+                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    .pushReaction(PushReaction.DESTROY)));
+
+    /** A wild bush that gives {@link #WILD_BERRIES}; see {@link WildBerryBushBlock}. */
+    public static final DeferredBlock<WildBerryBushBlock> WILD_BERRY_BUSH = BLOCKS.register("wild_berry_bush",
+            () -> new WildBerryBushBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.PLANT)
+                    .noCollission()
+                    .randomTicks()
+                    .instabreak()
+                    .sound(SoundType.SWEET_BERRY_BUSH)
+                    .pushReaction(PushReaction.DESTROY)));
+
+    public static final DeferredItem<Item> WILD_BERRIES = ITEMS.registerSimpleItem("wild_berries",
+            new Item.Properties().food(new FoodProperties.Builder().nutrition(2).saturationModifier(0.1F).build()));
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<PlantBlockEntity>> PLANT_BLOCK_ENTITY =
             BLOCK_ENTITIES.register("plant", () -> BlockEntityType.Builder.of(PlantBlockEntity::new, CROP.get()).build(null));
