@@ -27,6 +27,9 @@ public final class PlantBlockEntity extends BlockEntity {
     @Nullable
     private Individual genome;
 
+    /** Not saved: only tells {@link PlantBlock#onPlace} apart from a plant put without a seed. */
+    private boolean plantedFromSeed;
+
     public PlantBlockEntity(BlockPos pos, BlockState state) {
         super(FarmingEvolution.PLANT_BLOCK_ENTITY.get(), pos, state);
     }
@@ -34,6 +37,14 @@ public final class PlantBlockEntity extends BlockEntity {
     /** Empty for a plant that was put into the world without a seed, e.g. by a command. */
     public Optional<Individual> genome() {
         return Optional.ofNullable(genome);
+    }
+
+    /**
+     * True once a seed item has given this plant its components, with or without a genome.
+     * Such a plant is a new one and does not continue a plant removed from its place.
+     */
+    boolean plantedFromSeed() {
+        return plantedFromSeed;
     }
 
     public void setGenome(@Nullable Individual genome) {
@@ -64,6 +75,7 @@ public final class PlantBlockEntity extends BlockEntity {
     protected void applyImplicitComponents(BlockEntity.DataComponentInput input) {
         super.applyImplicitComponents(input);
         genome = input.get(FarmingEvolution.GENOME);
+        plantedFromSeed = true;
     }
 
     @Override

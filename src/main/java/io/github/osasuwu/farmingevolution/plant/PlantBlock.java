@@ -41,7 +41,10 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
 
     /**
      * A plant put where another was removed during this tick continues it (see
-     * {@link RemovedPlants}). A planted seed overrides this with its own genome afterwards.
+     * {@link RemovedPlants}), unless it grows from a seed: a seed starts a new plant. The game
+     * gives the seed's components to the block entity either before this call (a player's
+     * hand) or after it (an item placing its block directly); both orders end with the genome
+     * of the seed.
      */
     @Override
     protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
@@ -50,7 +53,7 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
             return;
         }
         Individual genome = level.getData(FarmingEvolution.REMOVED_PLANTS).recall(level.getGameTime(), pos);
-        if (genome != null && level.getBlockEntity(pos) instanceof PlantBlockEntity plant) {
+        if (genome != null && level.getBlockEntity(pos) instanceof PlantBlockEntity plant && !plant.plantedFromSeed()) {
             plant.setGenome(genome);
         }
     }

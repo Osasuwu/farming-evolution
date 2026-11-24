@@ -20,15 +20,21 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.DirectionalPlaceContext;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
@@ -122,6 +128,36 @@ public final class PlantGenomeGameTests {
         });
     }
 
+    /**
+     * A player breaks a plant and plants a seed in its place within one tick. The new plant
+     * grows from that seed, so it has the genome of the seed and not of the broken plant.
+     */
+    @GameTest(template = "empty")
+    public static void seedPlantedByPlayerKeepsItsGenomeWherePlantWasJustRemoved(GameTestHelper helper) {
+        Individual ofSeed = genome("fiber_flax", 8, 1);
+        plantSeed(helper, genome("wild_hemp", 3, 3));
+        helper.getLevel().destroyBlock(helper.absolutePos(PLANT), false);
+        plantByPlayer(helper, seedOf(ofSeed));
+        if (!plantAt(helper).genome().equals(Optional.of(ofSeed))) {
+            throw new GameTestAssertException("A seed with " + ofSeed + " planted by a player gave the plant "
+                    + plantAt(helper).genome());
+        }
+        helper.succeed();
+    }
+
+    /** The same with a seed that has no genome: the plant has none, not the one of the broken plant. */
+    @GameTest(template = "empty")
+    public static void seedWithoutGenomePlantedByPlayerDoesNotInheritRemovedGenome(GameTestHelper helper) {
+        plantSeed(helper, genome("wild_hemp", 3, 3));
+        helper.getLevel().destroyBlock(helper.absolutePos(PLANT), false);
+        plantByPlayer(helper, new ItemStack(FarmingEvolution.SEEDS.get()));
+        if (plantAt(helper).genome().isPresent()) {
+            throw new GameTestAssertException("A seed without a genome planted by a player gave the plant "
+                    + plantAt(helper).genome());
+        }
+        helper.succeed();
+    }
+
     /** What a world save holds: the genome of a plant in its block entity, of a seed on its stack. */
     @GameTest(template = "empty")
     public static void genomeSurvivesSavingPlantAndSeed(GameTestHelper helper) {
@@ -162,7 +198,18 @@ public final class PlantGenomeGameTests {
         return seed;
     }
 
-    /** Plants the way a dispenser or a deployer would: the seed item places its block. */
+    /** Plants the way a player does: the seed in the hand is used on the top of the soil. */
+    private static void plantByPlayer(GameTestHelper helper, ItemStack seed) {
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        player.setItemInHand(InteractionHand.MAIN_HAND, seed);
+        BlockPos soil = helper.absolutePos(SOIL);
+        BlockHitResult top = new BlockHitResult(Vec3.atCenterOf(soil).add(0, 0.5, 0), Direction.UP, soil, false);
+        if (!seed.useOn(new UseOnContext(player, InteractionHand.MAIN_HAND, top)).consumesAction()) {
+            throw new GameTestAssertException("The player could not plant the seed on farmland");
+        }
+    }
+
+    /** Plants the way a machine does: the seed item places its block, with no player involved. */
     private static void plantSeed(GameTestHelper helper, Individual genome) {
         helper.setBlock(SOIL, Blocks.FARMLAND);
         ItemStack seed = seedOf(genome);
