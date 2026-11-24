@@ -244,7 +244,6 @@ tasks.named('verify') { dependsOn ':checks:simulateBreeding' }
 var recipeGraphDump = layout.projectDirectory.file('run/gametest/recipe-graph-dump.json')
 // A dump of an earlier run must not stand in for one this run did not write.
 tasks.named('runGameTestServer') { doFirst { recipeGraphDump.asFile.delete() } }
-tasks.named('runGameTestServer') { inputs.file 'src/gametest/pack.json' }
 var checkRecipeGraph = tasks.register('checkRecipeGraph', JavaExec) {
     group = 'verification'
     description = 'Fails when an input of a required recipe cannot be made from the starting resources.'
