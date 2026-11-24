@@ -64,6 +64,8 @@ neoForge {
             type = "gameTestServer"
             gameDirectory = project.file('run/gametest')
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            // The mod writes the recipes of the started server here for checkRecipeGraph below.
+            systemProperty 'farmingevolution.recipeGraphDump', project.file('run/gametest/recipe-graph-dump.json').absolutePath
         }
 
         // Dedicated server used by the check pipeline: boots in its own directory,
@@ -229,3 +231,19 @@ tasks.register('verify') {
 
 // The breeding simulator (checks/build.gradle) is one more stage of the pipeline.
 tasks.named('verify') { dependsOn ':checks:simulateBreeding' }
+
+// The recipe graph stage: the GameTest server writes its recipes out on start (RecipeGraphDump
+// in the mod), and the check fails when an input of a required recipe is out of reach of the
+// starting resources of pack/recipe-graph.json.
+var recipeGraphDump = layout.projectDirectory.file('run/gametest/recipe-graph-dump.json')
+// A dump of an earlier run must not stand in for one this run did not write.
+tasks.named('runGameTestServer') { doFirst { recipeGraphDump.asFile.delete() } }
+var checkRecipeGraph = tasks.register('checkRecipeGraph', JavaExec) {
+    group = 'verification'
+    description = 'Fails when an input of a required recipe cannot be made from the starting resources.'
+    dependsOn 'runGameTestServer'
+    classpath = configurations.checksRuntime
+    mainClass = 'io.github.osasuwu.farmingevolution.checks.RecipeGraphCheck'
+    args recipeGraphDump.asFile.absolutePath, layout.projectDirectory.file('pack/recipe-graph.json').asFile.absolutePath
+}
+tasks.named('verify') { dependsOn checkRecipeGraph }

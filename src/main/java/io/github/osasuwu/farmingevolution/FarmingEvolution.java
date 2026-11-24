@@ -9,6 +9,7 @@ import io.github.osasuwu.farmingevolution.plant.PlantBlockEntity;
 import io.github.osasuwu.farmingevolution.plant.Products;
 import io.github.osasuwu.farmingevolution.plant.RemovedPlants;
 import io.github.osasuwu.farmingevolution.plant.Requirements;
+import io.github.osasuwu.farmingevolution.recipe.RecipeGraphDump;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -31,6 +32,7 @@ import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.attachment.AttachmentType;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 
@@ -109,6 +111,7 @@ public final class FarmingEvolution {
         DATA_COMPONENTS.register(modBus);
         ATTACHMENTS.register(modBus);
         modBus.addListener(REQUIREMENTS::addPack);
+        NeoForge.EVENT_BUS.addListener(RecipeGraphDump::onServerStarted);
     }
 
     private static PackData readPack() {
