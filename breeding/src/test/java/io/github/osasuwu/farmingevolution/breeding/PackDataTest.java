@@ -25,7 +25,7 @@ class PackDataTest {
                 {"id": "fiber_flax", "wild": {"fiber_strength": 5, "habit": "dwarf"}},
                 {"id": "aurochs", "two_sexed": true, "wild": {"vigor": 4}}
               ],
-              "mutations": [
+              "hybridizations": [
                 {"parents": ["wild_flax", "wild_hemp"], "result": "fiber_flax", "chance": 0.25,
                  "conditions": {"soil": ["loam"], "climate": {"temperature": {"min": 10, "max": 25}}}}
               ],
@@ -40,7 +40,7 @@ class PackDataTest {
     private record Fault(String sound, String broken, String message) {
     }
 
-    private static final String MUTATION = "mutation wild_flax + wild_hemp -> fiber_flax: ";
+    private static final String HYBRIDIZATION = "hybridization wild_flax + wild_hemp -> fiber_flax: ";
 
     private static final List<Fault> FAULTS = List.of(
             new Fault("{\"id\": \"vigor\", \"kind\": \"trait\"", "{\"id\": \"species\", \"kind\": \"trait\"",
@@ -68,21 +68,21 @@ class PackDataTest {
             new Fault("\"fiber_strength\": 5, \"habit\": \"dwarf\"", "\"fiber_strength\": 5, \"habit\": \"bushy\"",
                     "species fiber_flax: habit has no allele bushy"),
             new Fault("\"result\": \"fiber_flax\"", "\"result\": \"ghost\"",
-                    "mutation wild_flax + wild_hemp -> ghost: unknown species ghost"),
+                    "hybridization wild_flax + wild_hemp -> ghost: unknown species ghost"),
             new Fault("[\"wild_flax\", \"wild_hemp\"]", "[\"wild_flax\", \"ghost\"]",
-                    "mutation wild_flax + ghost -> fiber_flax: unknown species ghost"),
+                    "hybridization wild_flax + ghost -> fiber_flax: unknown species ghost"),
             new Fault("[\"wild_flax\", \"wild_hemp\"]", "[\"ghost\", \"wild_hemp\"]",
-                    "mutation ghost + wild_hemp -> fiber_flax: unknown species ghost"),
-            new Fault("\"chance\": 0.25", "\"chance\": 1.5", MUTATION + "chance 1.5 is outside 0..1"),
-            new Fault("\"chance\": 0.25", "\"chance\": -0.5", MUTATION + "chance -0.5 is outside 0..1"),
+                    "hybridization ghost + wild_hemp -> fiber_flax: unknown species ghost"),
+            new Fault("\"chance\": 0.25", "\"chance\": 1.5", HYBRIDIZATION + "chance 1.5 is outside 0..1"),
+            new Fault("\"chance\": 0.25", "\"chance\": -0.5", HYBRIDIZATION + "chance -0.5 is outside 0..1"),
             new Fault("{\"fiber_strength\": 3, \"habit\": \"dwarf\"}", "{\"fiber_strength\": 3}",
-                    MUTATION + "wild_flax and wild_hemp have different chromosome sets"),
+                    HYBRIDIZATION + "wild_flax and wild_hemp have different chromosome sets"),
             new Fault("{\"fiber_strength\": 5, \"habit\": \"dwarf\"}", "{\"fiber_strength\": 5}",
-                    MUTATION + "wild_flax and fiber_flax have different chromosome sets"),
+                    HYBRIDIZATION + "wild_flax and fiber_flax have different chromosome sets"),
             new Fault("{\"id\": \"wild_hemp\"", "{\"id\": \"wild_hemp\", \"two_sexed\": true",
-                    MUTATION + "wild_flax and wild_hemp differ in two_sexed"),
+                    HYBRIDIZATION + "wild_flax and wild_hemp differ in two_sexed"),
             new Fault("{\"id\": \"fiber_flax\", \"wild\"", "{\"id\": \"fiber_flax\", \"two_sexed\": true, \"wild\"",
-                    MUTATION + "wild_flax and fiber_flax differ in two_sexed"),
+                    HYBRIDIZATION + "wild_flax and fiber_flax differ in two_sexed"),
             new Fault("{\"id\": \"fine_fiber\"", "{\"id\": \"strong_fiber\"",
                     "duplicate variety strong_fiber"),
             new Fault("{\"id\": \"fine_fiber\", \"species\": \"fiber_flax\"", "{\"id\": \"fine_fiber\", \"species\": \"ghost\"",
@@ -97,6 +97,9 @@ class PackDataTest {
                     "variety fine_fiber: fiber_strength threshold 0 is outside 1..10"),
             // A misspelled or extra key must not load as different rules.
             new Fault("\"varieties\": [", "\"sorts\": [], \"varieties\": [", "pack data: unknown key sorts"),
+            // The old name of the new-species rule (#45) must not load, nor pass for an unknown key.
+            new Fault("\"hybridizations\": [", "\"mutations\": [",
+                    "pack data: key mutations is renamed to hybridizations"),
             new Fault("\"min\": 1, \"max\": 5", "\"min\": 1, \"max\": 5, \"step\": 1",
                     "chromosome vigor: unknown key step"),
             new Fault("{\"id\": \"dwarf\"}]}", "{\"id\": \"dwarf\", \"dominance\": true}]}",
@@ -105,17 +108,17 @@ class PackDataTest {
                     "species aurochs: unknown key sexes"),
             new Fault("\"kind\": \"alleles\", \"alleles\"", "\"kind\": \"alleles\", \"order\": 1, \"alleles\"",
                     "chromosome habit: unknown key order"),
-            new Fault("\"chance\": 0.25", "\"chance\": 0.25, \"note\": 1", MUTATION + "unknown key note"),
-            new Fault("\"soil\": [\"loam\"]", "\"soils\": [\"loam\"]", MUTATION + "conditions: unknown key soils"),
+            new Fault("\"chance\": 0.25", "\"chance\": 0.25, \"note\": 1", HYBRIDIZATION + "unknown key note"),
+            new Fault("\"soil\": [\"loam\"]", "\"soils\": [\"loam\"]", HYBRIDIZATION + "conditions: unknown key soils"),
             new Fault("{\"min\": 10, \"max\": 25}", "{\"mim\": 10, \"max\": 25}",
-                    MUTATION + "temperature: unknown key mim"),
+                    HYBRIDIZATION + "temperature: unknown key mim"),
             new Fault("{\"id\": \"fine_fiber\"", "{\"id\": \"fine_fiber\", \"tier\": 1",
                     "variety fine_fiber: unknown key tier"),
             // A missing key is named with its entry.
             new Fault("{\"id\": \"aurochs\", ", "{", "species: missing key id"),
             new Fault("{\"id\": \"aurochs\"", "{\"id\": \"\"", "species: empty id"),
-            new Fault("\"result\": \"fiber_flax\", ", "", "mutation: missing key result"),
-            new Fault("\"chance\": 0.25,", "", MUTATION + "missing key chance"),
+            new Fault("\"result\": \"fiber_flax\", ", "", "hybridization: missing key result"),
+            new Fault("\"chance\": 0.25,", "", HYBRIDIZATION + "missing key chance"),
             new Fault("\"min\": 1, \"max\": 5, ", "\"min\": 1, ", "chromosome vigor: missing key max"),
             new Fault("\"species\": \"fiber_flax\", \"thresholds\": {\"fiber_strength\": 4}", "\"species\": \"fiber_flax\"",
                     "variety fine_fiber: missing key thresholds"),
@@ -130,7 +133,7 @@ class PackDataTest {
                     "variety fine_fiber: fiber_strength threshold 4.5 is not a whole number"),
             new Fault("{\"id\": \"dwarf\"}]}", "{\"id\": \"tall\"}]}", "chromosome habit: duplicate allele tall"),
             new Fault("{\"min\": 10, \"max\": 25}", "{\"min\": 25, \"max\": 10}",
-                    MUTATION + "temperature range 25.0..10.0 is empty"));
+                    HYBRIDIZATION + "temperature range 25.0..10.0 is empty"));
 
     private static String rejection(String packData) {
         try {
@@ -155,19 +158,19 @@ class PackDataTest {
     void readPackDataAndReportedOddsCannotBeChanged() {
         PackData data = PackData.parse(new StringReader(SOUND));
         Species flax = data.species("wild_flax");
-        Mutation mutation = data.mutations().get(0);
+        Hybridization hybridization = data.hybridizations().get(0);
         Breeding breeding = new Breeding(data);
         CrossOdds odds = breeding.odds(
                 breeding.wild("wild_flax", Sex.NONE), breeding.wild("wild_flax", Sex.NONE), Environment.NONE);
         Map<String, Runnable> changes = new LinkedHashMap<>();
         changes.put("chromosomes", () -> data.chromosomes().clear());
         changes.put("species", () -> data.species().clear());
-        changes.put("mutations", () -> data.mutations().clear());
+        changes.put("hybridizations", () -> data.hybridizations().clear());
         changes.put("varieties", () -> data.varieties().clear());
         changes.put("wild type", () -> flax.wild().clear());
         changes.put("alleles", () -> ((ChromosomeType.Categorical) data.chromosomes().get("habit")).alleles().clear());
-        changes.put("soils", () -> mutation.condition().soils().clear());
-        changes.put("climate", () -> mutation.condition().climate().clear());
+        changes.put("soils", () -> hybridization.condition().soils().clear());
+        changes.put("climate", () -> hybridization.condition().climate().clear());
         changes.put("thresholds", () -> data.varieties().get("fine_fiber").thresholds().clear());
         changes.put("odds", () -> odds.chromosomes().clear());
         List<String> changed = new ArrayList<>();
@@ -208,7 +211,7 @@ class PackDataTest {
                 SOUND.replace("{\"id\": \"aurochs\"", "{\"id\": {}"),
                 SOUND.replace("\"wild\": {\"vigor\": 4}", "\"wild\": 4"),
                 // An optional key holding the wrong kind of value.
-                "{\"chromosomes\": [], \"species\": [], \"mutations\": {}}",
+                "{\"chromosomes\": [], \"species\": [], \"hybridizations\": {}}",
                 "{\"chromosomes\": [], \"species\": [], \"varieties\": 3}",
                 SOUND.replace("\"soil\": [\"loam\"]", "\"soil\": {}"),
                 SOUND.replace("\"climate\": {\"temperature\": {\"min\": 10, \"max\": 25}}", "\"climate\": []"),

@@ -10,7 +10,7 @@ import java.util.Set;
  * A cross of two species that may give a third. When a pair qualifies, each parent's gamete
  * independently turns, with the given chance, into the wild type of the result species.
  */
-public record Mutation(String firstParent, String secondParent, String result, double chance, Condition condition) {
+public record Hybridization(String firstParent, String secondParent, String result, double chance, Condition condition) {
 
     /** Whether a pair with these active species, in either order, qualifies in this environment. */
     public boolean applies(String species, String otherSpecies, Environment environment) {
@@ -20,7 +20,7 @@ public record Mutation(String firstParent, String secondParent, String result, d
     }
 
     /**
-     * Where the mutation can happen.
+     * Where the hybridization can happen.
      *
      * @param soils   the soils it needs one of; empty for any soil or none
      * @param climate the range each named climate reading must lie in, bounds included

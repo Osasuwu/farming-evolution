@@ -6,7 +6,7 @@
     {"id": "wild_flax", "wild": {"fiber_strength": 2}},
     {"id": "fiber_flax", "dominant": true, "wild": {"fiber_strength": 5}}
   ],
-  "mutations": [
+  "hybridizations": [
     {"parents": ["wild_flax", "wild_flax"], "result": "fiber_flax", "chance": 0.25,
      "conditions": {"climate": {"temperature": {"min": 4, "max": 16}, "humidity": {"min": 65}}}}
   ],
