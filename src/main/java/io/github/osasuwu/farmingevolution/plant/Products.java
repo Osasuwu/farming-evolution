@@ -6,7 +6,6 @@ import io.github.osasuwu.farmingevolution.breeding.PackData;
 import io.github.osasuwu.farmingevolution.breeding.Variety;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -29,8 +28,8 @@ public final class Products {
      * Registers the items. An id that is not a valid item id, or two entries that give the
      * same one, stop the game here, like any other fault of pack data.
      */
-    public Products(PackData data, DeferredRegister.Items items) {
-        breeding = new Breeding(data);
+    public Products(PackData data, Breeding breeding, DeferredRegister.Items items) {
+        this.breeding = breeding;
         data.varieties().keySet().forEach(id -> ofVariety.put(id, items.registerSimpleItem(varietyItem(id))));
         data.species().keySet().forEach(id -> ofSpecies.put(id, items.registerSimpleItem(speciesItem(id))));
     }
@@ -47,12 +46,13 @@ public final class Products {
 
     /**
      * What one harvest of the plant gives: the product of the narrowest variety it fits, or
-     * the product of its species when it fits none. Empty for a species pack data does not
-     * have: a genome read from a save never has one, see {@link Breeding#restore}.
+     * the product of its species when it fits none. A genome pack data does not describe is
+     * first brought to it the way one read from a save is ({@link Breeding#restore}): a
+     * genome set by a command or by other code has not been through that reading.
      */
-    public Optional<Item> of(Individual plant) {
-        DeferredItem<Item> item = breeding.variety(plant).map(Variety::id).map(ofVariety::get)
-                .orElseGet(() -> ofSpecies.get(plant.species()));
-        return Optional.ofNullable(item).map(DeferredItem::get);
+    public Item of(Individual plant) {
+        Individual described = breeding.restore(plant, replaced -> { });
+        return breeding.variety(described).map(Variety::id).map(ofVariety::get)
+                .orElseGet(() -> ofSpecies.get(described.species())).get();
     }
 }

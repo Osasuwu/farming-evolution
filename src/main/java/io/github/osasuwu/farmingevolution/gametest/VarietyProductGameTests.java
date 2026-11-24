@@ -109,6 +109,21 @@ public final class VarietyProductGameTests {
     }
 
     /**
+     * A genome put on a seed by code never went through the reading of a save. This one has no
+     * length of the fibre, which hemp has: the harvest treats it as a save would be, wild
+     * hemp has length 3, and strength 8 with length 3 is strong_hemp.
+     */
+    @GameTest(template = "empty")
+    public static void plantWithGenomePackDataDoesNotDescribeGivesProductOfRestoredGenome(GameTestHelper helper) {
+        Individual withoutLength = new Individual(Sex.NONE, Map.of(
+                Breeding.SPECIES, Chromosome.pure(new Allele.Named("hemp", false)),
+                "fiber_strength", new Chromosome(new Allele.Numeric(8), new Allele.Numeric(1))));
+        expect("a hemp with strength 8 and no length", harvestByHand(helper, withoutLength),
+                List.of("farmingevolution:strong_hemp x1"));
+        helper.succeed();
+    }
+
+    /**
      * The harvester of Create sweeps through a ripe plant (the machine of
      * {@link PlantGenomeGameTests#harvesterReplantsPlantWithItsGenome}). What it drops besides
      * the seed is what a hand got from a plant with the same genome.

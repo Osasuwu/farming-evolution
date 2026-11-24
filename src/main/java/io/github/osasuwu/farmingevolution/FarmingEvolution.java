@@ -56,7 +56,7 @@ public final class FarmingEvolution {
     public static final Breeding BREEDING = new Breeding(PACK);
 
     /** The product items of the varieties and species of {@link #PACK}. */
-    public static final Products PRODUCTS = new Products(PACK, ITEMS);
+    public static final Products PRODUCTS = new Products(PACK, BREEDING, ITEMS);
 
     /**
      * Plant fibre of the prototype: a plain item the check pipeline sends through a Create

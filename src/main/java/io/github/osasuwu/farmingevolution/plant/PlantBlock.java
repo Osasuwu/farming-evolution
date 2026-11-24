@@ -44,7 +44,7 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
     protected List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
         List<ItemStack> drops = new ArrayList<>(super.getDrops(state, params));
         if (isMaxAge(state) && params.getOptionalParameter(LootContextParams.BLOCK_ENTITY) instanceof PlantBlockEntity plant) {
-            plant.genome().flatMap(FarmingEvolution.PRODUCTS::of).ifPresent(product -> drops.add(new ItemStack(product)));
+            plant.genome().map(FarmingEvolution.PRODUCTS::of).ifPresent(product -> drops.add(new ItemStack(product)));
         }
         return drops;
     }

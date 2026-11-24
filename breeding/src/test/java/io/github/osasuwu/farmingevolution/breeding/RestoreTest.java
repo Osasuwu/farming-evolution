@@ -89,6 +89,14 @@ class RestoreTest {
     }
 
     @Test
+    void individualWithoutSpeciesChromosomeBecomesTheWildTypeAndKeepsItsSex() {
+        Individual saved = new Individual(Sex.FEMALE, Map.of("fiber_strength", strength(9, 1)));
+        List<String> reported = new ArrayList<>();
+        assertEquals(BREEDING.wild("flax", Sex.FEMALE), BREEDING.restore(saved, reported::add));
+        assertEquals(List.of("species: missing, replaced with wild flax"), reported);
+    }
+
+    @Test
     void chromosomeSetIsBroughtToThatOfTheActiveSpecies() {
         // Saved as moss when moss still had a strength; hemp has since lost nothing, moss has.
         Individual moss = genome(Chromosome.pure(new Allele.Named("moss", false)), strength(2, 2), Chromosome.pure(DWARF));
