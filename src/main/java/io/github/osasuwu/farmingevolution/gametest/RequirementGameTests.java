@@ -41,7 +41,7 @@ public final class RequirementGameTests {
     /**
      * Every item tag of the mod with everything in it, items of other mods included. So the
      * products of the other varieties, the products of no variety (fiber_flax_fiber among
-     * them) and the seeds are in no requirement tag.
+     * them), the seeds and the prototype's fibre are in no requirement tag.
      */
     @GameTest(template = "empty")
     public static void requirementTagHoldsProductsOfPassingVarietiesAndNothingElse(GameTestHelper helper) {
