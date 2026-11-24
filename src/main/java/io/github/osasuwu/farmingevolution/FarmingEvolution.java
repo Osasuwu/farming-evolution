@@ -85,13 +85,6 @@ public final class FarmingEvolution {
     public static final ClimateSource CLIMATE = new GradientClimate();
 
     /**
-     * Plant fibre of the prototype: a plain item the check pipeline sends through a Create
-     * machine (CreateMachineGameTests). No plant gives it and no requirement takes it; recipes
-     * take the products through a raw-material requirement ({@link #REQUIREMENTS}).
-     */
-    public static final DeferredItem<Item> FIBER = ITEMS.registerSimpleItem("fiber");
-
-    /**
      * The genome of a seed, on the item stack. A growing plant keeps the same value in its
      * block entity ({@link PlantBlockEntity}) and exposes it under this component.
      */
