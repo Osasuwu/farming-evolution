@@ -1,0 +1,60 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "farmingevolution:seeds",
+          "functions": [
+            {
+              "function": "minecraft:copy_components",
+              "source": "block_entity",
+              "include": ["farmingevolution:genome"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "conditions": [
+        {
+          "condition": "minecraft:block_state_property",
+          "block": "farmingevolution:crop",
+          "properties": {"age": "7"}
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "farmingevolution:seeds",
+          "functions": [
+            {
+              "function": "minecraft:copy_components",
+              "source": "block_entity",
+              "include": ["farmingevolution:genome"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "conditions": [
+        {
+          "condition": "minecraft:block_state_property",
+          "block": "farmingevolution:crop",
+          "properties": {"age": "7"}
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "farmingevolution:fiber"
+        }
+      ]
+    }
+  ]
+}
