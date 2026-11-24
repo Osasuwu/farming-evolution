@@ -207,4 +207,166 @@ class BreedingSimulationTest {
                 assertThrows(IllegalArgumentException.class,
                         () -> BreedingSimulation.parse(new StringReader(unknownSight))).getMessage());
     }
+
+    /** Flax is wild at 3; "low" asks for 2 or less, "band" for 5 or 6. */
+    private static final String BOUNDED = """
+            {
+              "pack": {
+                "chromosomes": [{"id": "fiber_strength", "kind": "trait", "min": 1, "max": 10, "shift_chance": 1.0}],
+                "species": [{"id": "flax", "wild": {"fiber_strength": 3}}],
+                "varieties": [
+                  {"id": "low", "species": "flax", "thresholds": {"fiber_strength": {"max": 2}}},
+                  {"id": "band", "species": "flax", "thresholds": {"fiber_strength": {"min": 5, "max": 6}}}
+                ]
+              },
+              "seed": 23,
+              "runs": 1,
+              "generation_limit": 40,
+              "methods": [{"id": "selection", "sees": "expressed", "offspring": 8, "minutes_per_generation": 5}]
+            }
+            """;
+
+    /** Every roll lands on the last outcome of its distribution. */
+    private static final RandomGenerator LAST_OUTCOME = () -> -1L;
+
+    private static PackData bounded() {
+        return BreedingSimulation.parse(new StringReader(BOUNDED)).pack();
+    }
+
+    @Test
+    void lineWithAParentAboveTheCeilingHasNotReachedTheVariety() {
+        var band = bounded().varieties().get("band");
+        // Both edges of 5..6 are inside; the inactive allele is not expressed.
+        assertEquals(true, BreedingSimulation.reached(List.of(flax(Sex.NONE, 5, 9), flax(Sex.NONE, 6, 1)), band));
+        assertEquals(false, BreedingSimulation.reached(List.of(flax(Sex.NONE, 6, 6), flax(Sex.NONE, 7, 5)), band));
+        assertEquals(false, BreedingSimulation.reached(List.of(flax(Sex.NONE, 7, 5), flax(Sex.NONE, 6, 6)), band));
+        var low = bounded().varieties().get("low");
+        assertEquals(true, BreedingSimulation.reached(List.of(flax(Sex.NONE, 2, 9), flax(Sex.NONE, 1, 1)), low));
+        assertEquals(false, BreedingSimulation.reached(List.of(flax(Sex.NONE, 2, 2), flax(Sex.NONE, 3, 1)), low));
+    }
+
+    @Test
+    void generationsAreCountedDownToACeilingAndALineThatOnlyClimbsNeverGetsThere() {
+        PackData pack = bounded();
+        // Shift chance 1. The first outcome of every roll adds one to each passed value, the
+        // last takes one away. Wild flax is 3.
+        var low = pack.varieties().get("low");
+        assertEquals(OptionalInt.of(1), BreedingSimulation.generations(pack, low, SELECTION, 3, LAST_OUTCOME));
+        assertEquals(OptionalInt.empty(), BreedingSimulation.generations(pack, low, SELECTION, 3, FIRST_OUTCOME));
+        // 3, 4, 5: the band 5..6 is entered from below after 2 generations.
+        var band = pack.varieties().get("band");
+        assertEquals(OptionalInt.of(2), BreedingSimulation.generations(pack, band, SELECTION, 3, FIRST_OUTCOME));
+    }
+
+    @Test
+    void selectionLeadsATraitDownToACeilingAsItLeadsItUpToAThreshold() {
+        var low = bounded().varieties().get("low");
+        Individual five = flax(Sex.NONE, 5, 5);
+        Individual three = flax(Sex.NONE, 3, 3);
+        Individual hidden = flax(Sex.NONE, 2, 6);
+        Individual two = flax(Sex.NONE, 2, 2);
+        List<Individual> offspring = List.of(five, three, hidden, two);
+        // Expressed 5, 3, 2, 2: the two at the ceiling, in birth order.
+        assertEquals(List.of(hidden, two), BreedingSimulation.parents(offspring, low, Sight.EXPRESSED, false));
+        // Both alleles, each counted by how far it is above 2: 6, 2, 4, 0.
+        assertEquals(List.of(two, three), BreedingSimulation.parents(offspring, low, Sight.ALLELES, false));
+    }
+
+    @Test
+    void valueAboveTheCeilingRanksBelowAValueInsideTheRegionAndBelowANearerMiss() {
+        var band = bounded().varieties().get("band");
+        Individual eight = flax(Sex.NONE, 8, 8);
+        Individual four = flax(Sex.NONE, 4, 4);
+        Individual one = flax(Sex.NONE, 1, 1);
+        Individual six = flax(Sex.NONE, 6, 6);
+        // Distance to 5..6: 8 is two above, 4 is one below, 1 is four below, 6 is inside.
+        assertEquals(List.of(six, four),
+                BreedingSimulation.parents(List.of(eight, four, one, six), band, Sight.EXPRESSED, false));
+        assertEquals(List.of(eight, one),
+                BreedingSimulation.parents(List.of(one, eight), band, Sight.EXPRESSED, false));
+    }
+
+    /** "sturdy" is passed by "strong" and by the narrower "finest", not by the wider "plain". */
+    private static Scenario required(String shiftChance) {
+        return BreedingSimulation.parse(new StringReader(SCENARIO.replace("SHIFT", shiftChance)
+                .replace("{\"id\": \"strong\",", "{\"id\": \"finest\", \"species\": \"flax\","
+                        + " \"thresholds\": {\"fiber_strength\": 9}},\n{\"id\": \"strong\",")
+                .replaceFirst("(?s)(\"varieties\": \\[.*?\\])", "$1, \"requirements\": ["
+                        + "{\"id\": \"sturdy\", \"species\": \"flax\", \"thresholds\": {\"fiber_strength\": 7}}]")));
+    }
+
+    private static Outcome outcome(String variety, Method method, Integer... generations) {
+        return new Outcome(variety, method, 40, java.util.Arrays.stream(generations)
+                .map(one -> one == null ? OptionalInt.empty() : OptionalInt.of(one)).toList());
+    }
+
+    @Test
+    void requirementIsReachedThroughThePassingVarietyWithTheLowestMedian() {
+        Outcome strongBySelection = outcome("strong", SELECTION, 30, 10, 12);
+        Outcome finestByCrossing = outcome("finest", CROSSING, 9, 8);
+        List<Outcome> outcomes = List.of(
+                // Reached at once, but "plain" does not pass the requirement.
+                outcome("plain", SELECTION, 0, 0, 0),
+                outcome("plain", CROSSING, 0, 0),
+                outcome("finest", SELECTION, 20, 25, 40),
+                finestByCrossing,
+                strongBySelection,
+                // The lower median, but one line of two did not get there.
+                outcome("strong", CROSSING, 5, null));
+        List<BreedingSimulation.RequirementOutcome> reached =
+                BreedingSimulation.requirements(required("0.2"), outcomes);
+        assertEquals(List.of(
+                new BreedingSimulation.RequirementOutcome(
+                        "sturdy", SELECTION, 40, List.of("finest", "strong"), Optional.of(strongBySelection)),
+                new BreedingSimulation.RequirementOutcome(
+                        "sturdy", CROSSING, 40, List.of("finest", "strong"), Optional.of(finestByCrossing))), reached);
+        // Sorted 10, 12, 30 at 5 minutes a generation; sorted 8, 9 at 7.
+        assertEquals("requirement sturdy, method selection: variety strong,"
+                + " median 12 generations (60 min), worst 30 generations (150 min)", reached.get(0).line());
+        assertEquals("requirement sturdy, method crossing: variety finest,"
+                + " median 9 generations (63 min), worst 9 generations (63 min)", reached.get(1).line());
+        assertEquals(Optional.empty(), reached.get(0).failure());
+    }
+
+    @Test
+    void equalMediansAreSettledByTheWorstLineAndThenByPackDataOrder() {
+        Outcome finest = outcome("finest", SELECTION, 12, 12, 20);
+        Outcome strong = outcome("strong", SELECTION, 12, 12, 19);
+        assertEquals(Optional.of(strong), BreedingSimulation.requirements(required("0.2"),
+                List.of(finest, outcome("finest", CROSSING, 1), strong, outcome("strong", CROSSING, 1)))
+                .get(0).reachedBy());
+        Outcome same = outcome("strong", SELECTION, 12, 12, 20);
+        assertEquals(Optional.of(finest), BreedingSimulation.requirements(required("0.2"),
+                List.of(same, outcome("strong", CROSSING, 1), finest, outcome("finest", CROSSING, 1)))
+                .get(0).reachedBy());
+    }
+
+    @Test
+    void requirementWhoseEveryPassingVarietyLosesALineIsOutOfReachAndIsAFailure() {
+        List<BreedingSimulation.RequirementOutcome> reached = BreedingSimulation.requirements(required("0.2"), List.of(
+                outcome("plain", SELECTION, 0), outcome("plain", CROSSING, 0),
+                outcome("finest", SELECTION, 20, null), outcome("finest", CROSSING, 9),
+                outcome("strong", SELECTION, null, 15), outcome("strong", CROSSING, 5)));
+        assertEquals(new BreedingSimulation.RequirementOutcome(
+                "sturdy", SELECTION, 40, List.of("finest", "strong"), Optional.empty()), reached.get(0));
+        assertEquals("requirement sturdy, method selection: out of reach", reached.get(0).line());
+        assertEquals(Optional.of("requirement sturdy, method selection: none of the varieties that pass it"
+                + " (finest, strong) was reached by every line within 40 generations"), reached.get(0).failure());
+        assertEquals(Optional.empty(), reached.get(1).failure());
+    }
+
+    @Test
+    void requirementIsOutOfReachWhenTheSimulatedLinesNeverGetToAPassingVariety() {
+        // Shift chance 0: wild flax stays at 3, below "strong" and "finest".
+        Scenario scenario = required("0");
+        List<BreedingSimulation.RequirementOutcome> reached =
+                BreedingSimulation.requirements(scenario, BreedingSimulation.run(scenario));
+        assertEquals(List.of(Optional.empty(), Optional.empty()),
+                reached.stream().map(BreedingSimulation.RequirementOutcome::reachedBy).toList());
+        // Shift chance 1 and 8 or 6 offspring: with seed 23 every line climbs to 7 within the limit.
+        Scenario climbing = required("1.0");
+        assertEquals(List.of("strong", "strong"),
+                BreedingSimulation.requirements(climbing, BreedingSimulation.run(climbing)).stream()
+                        .map(one -> one.reachedBy().orElseThrow().variety()).toList());
+    }
 }

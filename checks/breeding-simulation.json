@@ -8,6 +8,9 @@
     ],
     "varieties": [
       {"id": "strong_fiber", "species": "flax", "thresholds": {"fiber_strength": 7}}
+    ],
+    "requirements": [
+      {"id": "strong_fiber", "species": "flax", "thresholds": {"fiber_strength": 7}}
     ]
   },
   "seed": 23,
