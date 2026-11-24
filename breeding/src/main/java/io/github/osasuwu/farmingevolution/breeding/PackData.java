@@ -19,13 +19,13 @@ import java.util.Set;
  * Maps keep the order of the document, so a fixed seed gives the same rolls on every run.
  */
 public record PackData(
-        Map<String, ChromosomeType> chromosomes, Map<String, Species> species, List<Mutation> mutations,
+        Map<String, ChromosomeType> chromosomes, Map<String, Species> species, List<Hybridization> hybridizations,
         Map<String, Variety> varieties, Map<String, Requirement> requirements) {
 
     public PackData {
         chromosomes = Collections.unmodifiableMap(new LinkedHashMap<>(chromosomes));
         species = Collections.unmodifiableMap(new LinkedHashMap<>(species));
-        mutations = List.copyOf(mutations);
+        hybridizations = List.copyOf(hybridizations);
         varieties = Collections.unmodifiableMap(new LinkedHashMap<>(varieties));
         requirements = Collections.unmodifiableMap(new LinkedHashMap<>(requirements));
     }
@@ -38,7 +38,12 @@ public record PackData(
         try {
             JsonObject root = JsonParser.parseReader(json).getAsJsonObject();
             String entry = "pack data: ";
-            known(root, entry, "chromosomes", "species", "mutations", "varieties", "requirements");
+            // The rule that gives a new species was called a mutation before #45; a mutation is
+            // now only a random shift of a trait value. Old data is pointed at the new key.
+            if (root.has("mutations")) {
+                throw new PackDataException(entry + "key mutations is renamed to hybridizations");
+            }
+            known(root, entry, "chromosomes", "species", "hybridizations", "varieties", "requirements");
             Map<String, ChromosomeType> chromosomes = new LinkedHashMap<>();
             for (JsonElement element : get(root, "chromosomes", entry).getAsJsonArray()) {
                 ChromosomeType type = chromosomeType(element.getAsJsonObject());
@@ -49,9 +54,9 @@ public record PackData(
                 Species parsed = species(element.getAsJsonObject(), chromosomes);
                 add(species, "species", parsed.id(), parsed);
             }
-            List<Mutation> mutations = new ArrayList<>();
-            for (JsonElement element : array(root, "mutations")) {
-                mutations.add(mutation(element.getAsJsonObject(), species));
+            List<Hybridization> hybridizations = new ArrayList<>();
+            for (JsonElement element : array(root, "hybridizations")) {
+                hybridizations.add(hybridization(element.getAsJsonObject(), species));
             }
             Map<String, Variety> varieties = new LinkedHashMap<>();
             for (JsonElement element : array(root, "varieties")) {
@@ -65,7 +70,7 @@ public record PackData(
                 add(requirements, "requirement", region.id(),
                         new Requirement(region.id(), region.species(), region.thresholds(), region.ceilings()));
             }
-            PackData data = new PackData(chromosomes, species, mutations, varieties, requirements);
+            PackData data = new PackData(chromosomes, species, hybridizations, varieties, requirements);
             data.checkRequirements();
             return data;
         } catch (JsonParseException | IllegalStateException | NumberFormatException
@@ -155,12 +160,12 @@ public record PackData(
                 new Allele.Named(id, flag(json, "dominant", entry)), wild);
     }
 
-    private static Mutation mutation(JsonObject json, Map<String, Species> species) {
-        JsonArray parents = get(json, "parents", "mutation: ").getAsJsonArray();
+    private static Hybridization hybridization(JsonObject json, Map<String, Species> species) {
+        JsonArray parents = get(json, "parents", "hybridization: ").getAsJsonArray();
         String first = parents.get(0).getAsString();
         String second = parents.get(1).getAsString();
-        String result = get(json, "result", "mutation: ").getAsString();
-        String entry = "mutation " + first + " + " + second + " -> " + result + ": ";
+        String result = get(json, "result", "hybridization: ").getAsString();
+        String entry = "hybridization " + first + " + " + second + " -> " + result + ": ";
         known(json, entry, "parents", "result", "chance", "conditions");
         for (String id : List.of(first, second, result)) {
             if (!species.containsKey(id)) {
@@ -185,7 +190,7 @@ public record PackData(
         known(conditions, entry + "conditions: ", "soil", "climate");
         Set<String> soils = new LinkedHashSet<>();
         array(conditions, "soil").forEach(soil -> soils.add(soil.getAsString()));
-        Map<String, Mutation.Range> climate = new LinkedHashMap<>();
+        Map<String, Hybridization.Range> climate = new LinkedHashMap<>();
         JsonObject readings = conditions.has("climate") ? conditions.get("climate").getAsJsonObject() : new JsonObject();
         for (Map.Entry<String, JsonElement> reading : readings.entrySet()) {
             JsonObject range = reading.getValue().getAsJsonObject();
@@ -196,9 +201,9 @@ public record PackData(
             if (!(min <= max)) {
                 throw new PackDataException(entry + reading.getKey() + " range " + min + ".." + max + " is empty");
             }
-            climate.put(reading.getKey(), new Mutation.Range(min, max));
+            climate.put(reading.getKey(), new Hybridization.Range(min, max));
         }
-        return new Mutation(first, second, result, chance, new Mutation.Condition(soils, climate));
+        return new Hybridization(first, second, result, chance, new Hybridization.Condition(soils, climate));
     }
 
     /**
@@ -343,7 +348,7 @@ public record PackData(
         return chance;
     }
 
-    /** An optional list: a pack without mutations simply leaves the key out. */
+    /** An optional list: a pack without hybridizations simply leaves the key out. */
     private static JsonArray array(JsonObject json, String name) {
         return json.has(name) ? json.get(name).getAsJsonArray() : new JsonArray();
     }

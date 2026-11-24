@@ -20,8 +20,8 @@ public final class Breeding {
     /** The id of the chromosome that holds the species. */
     public static final String SPECIES = "species";
 
-    /** Stands for "no mutation" among the species a mutation may give. */
-    private static final String NO_MUTATION = "";
+    /** Stands for "no hybrid" among the species a hybridization may give. */
+    private static final String NO_HYBRID = "";
 
     private static final Distribution<Boolean> COIN = coin();
 
@@ -214,12 +214,12 @@ public final class Breeding {
         return allele instanceof Allele.Named named ? named.id() : String.valueOf(((Allele.Numeric) allele).value());
     }
 
-    /** The allele of one chromosome a gamete may carry, mutations counted in. */
+    /** The allele of one chromosome a gamete may carry, hybridizations counted in. */
     private Distribution<Allele> carried(Gametes gametes, String type) {
-        return Distribution.combine(gametes.mutation(), Distribution.certain(type), (mutated, same) ->
-                mutated.equals(NO_MUTATION)
+        return Distribution.combine(gametes.hybrid(), Distribution.certain(type), (hybrid, same) ->
+                hybrid.equals(NO_HYBRID)
                         ? gametes.inherited().get(type)
-                        : Distribution.certain(haploid(data.species(mutated)).get(type)));
+                        : Distribution.certain(haploid(data.species(hybrid)).get(type)));
     }
 
     /**
@@ -312,23 +312,23 @@ public final class Breeding {
     /**
      * What one parent may pass on in a cross with the other.
      *
-     * @param mutation  the species a mutation turns the gamete into, or NO_MUTATION
-     * @param inherited for every chromosome type, the alleles an unmutated gamete may carry
+     * @param hybrid    the species a hybridization turns the gamete into, or NO_HYBRID
+     * @param inherited for every chromosome type, the alleles a gamete no hybridization took may carry
      */
-    private record Gametes(Distribution<String> mutation, Map<String, Distribution<Allele>> inherited) {
+    private record Gametes(Distribution<String> hybrid, Map<String, Distribution<Allele>> inherited) {
     }
 
     private Gametes gametes(Individual parent, Individual other, Environment environment) {
-        // Mutations are tried in pack data order; the first that happens takes the gamete.
+        // Hybridizations are tried in pack data order; the first that happens takes the gamete.
         Map<String, Double> results = new LinkedHashMap<>();
         double untouched = 1;
-        for (Mutation mutation : data.mutations()) {
-            if (mutation.applies(parent.species(), other.species(), environment)) {
-                results.merge(mutation.result(), untouched * mutation.chance(), Double::sum);
-                untouched *= 1 - mutation.chance();
+        for (Hybridization hybridization : data.hybridizations()) {
+            if (hybridization.applies(parent.species(), other.species(), environment)) {
+                results.merge(hybridization.result(), untouched * hybridization.chance(), Double::sum);
+                untouched *= 1 - hybridization.chance();
             }
         }
-        results.put(NO_MUTATION, untouched);
+        results.put(NO_HYBRID, untouched);
         Map<String, Distribution<Allele>> inherited = new LinkedHashMap<>();
         for (String type : types(parent)) {
             inherited.put(type, Distribution.combine(
@@ -339,9 +339,9 @@ public final class Breeding {
     }
 
     private Map<String, Allele> roll(Gametes gametes, RandomGenerator random) {
-        String mutated = gametes.mutation().sample(random);
-        if (!mutated.equals(NO_MUTATION)) {
-            return haploid(data.species(mutated));
+        String hybrid = gametes.hybrid().sample(random);
+        if (!hybrid.equals(NO_HYBRID)) {
+            return haploid(data.species(hybrid));
         }
         Map<String, Allele> gamete = new LinkedHashMap<>();
         gametes.inherited().forEach((type, alleles) -> gamete.put(type, alleles.sample(random)));

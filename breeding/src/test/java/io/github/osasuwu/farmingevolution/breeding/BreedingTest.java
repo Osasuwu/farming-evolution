@@ -31,7 +31,7 @@ class BreedingTest {
                 {"id": "fiber_flax", "wild": {"fiber_strength": 5, "habit": "dwarf"}},
                 {"id": "moss", "wild": {"fiber_strength": 2}}
               ],
-              "mutations": [
+              "hybridizations": [
                 {"parents": ["wild_flax", "wild_hemp"], "result": "fiber_flax", "chance": 0.25,
                  "conditions": {"soil": ["loam", "chernozem"], "climate": {"temperature": {"min": 10, "max": 25}}}}
               ]
@@ -95,7 +95,7 @@ class BreedingTest {
         Breeding breeding = breeding(PLANTS.replace("\"chance\": 0.25", "\"chance\": 1.0"));
         Individual flax = breeding.wild("wild_flax", Sex.NONE);
         Individual hemp = breeding.wild("wild_hemp", Sex.NONE);
-        // The wild type of fiber_flax as PLANTS writes it; a mutated gamete carries it unshifted.
+        // The wild type of fiber_flax as PLANTS writes it; a hybrid gamete carries it unshifted.
         Individual fiberFlax = new Individual(Sex.NONE, Map.of(
                 "species", Chromosome.pure(new Allele.Named("fiber_flax", false)),
                 "fiber_strength", numbers(5, 5),
@@ -107,34 +107,34 @@ class BreedingTest {
     }
 
     /** The share of gametes turned into fiber_flax over 10 000 wild_flax x wild_hemp crosses. */
-    private static double mutatedShare(Environment environment) {
+    private static double hybridShare(Environment environment) {
         Breeding breeding = breeding(PLANTS);
         Individual flax = breeding.wild("wild_flax", Sex.NONE);
         Individual hemp = breeding.wild("wild_hemp", Sex.NONE);
         Allele fiberFlax = new Allele.Named("fiber_flax", false);
         Random random = new Random(11);
-        int mutated = 0;
+        int hybrid = 0;
         for (int i = 0; i < 10_000; i++) {
             Chromosome species = breeding.cross(flax, hemp, environment, random).genome().get("species");
-            mutated += (species.active().equals(fiberFlax) ? 1 : 0) + (species.inactive().equals(fiberFlax) ? 1 : 0);
+            hybrid += (species.active().equals(fiberFlax) ? 1 : 0) + (species.inactive().equals(fiberFlax) ? 1 : 0);
         }
-        return mutated / 20_000.0;
+        return hybrid / 20_000.0;
     }
 
     @Test
-    void conditionalMutationNeverHappensOffConditionAndHappensAtItsChanceOnCondition() {
+    void conditionalHybridizationNeverHappensOffConditionAndHappensAtItsChanceOnCondition() {
         // PLANTS: chance 0.25 per gamete, on loam or chernozem, at temperature 10..25.
         // 20 000 gametes put one standard deviation at sqrt(0.25 * 0.75 / 20 000) = 0.0031, so 0.015
-        // is about five of them; a rule that mutated once per cross, not per gamete, would read 0.125.
-        assertEquals(0.25, mutatedShare(LOAM_AT_18), 0.015);
-        assertEquals(0.25, mutatedShare(new Environment(Map.of("temperature", 10.0), "chernozem")), 0.015);
-        assertEquals(0.25, mutatedShare(new Environment(Map.of("temperature", 25.0), "loam")), 0.015);
+        // is about five of them; a rule that hybridized once per cross, not per gamete, would read 0.125.
+        assertEquals(0.25, hybridShare(LOAM_AT_18), 0.015);
+        assertEquals(0.25, hybridShare(new Environment(Map.of("temperature", 10.0), "chernozem")), 0.015);
+        assertEquals(0.25, hybridShare(new Environment(Map.of("temperature", 25.0), "loam")), 0.015);
 
-        assertEquals(0, mutatedShare(new Environment(Map.of("temperature", 18.0), "sand")));
-        assertEquals(0, mutatedShare(new Environment(Map.of("temperature", 18.0), null)));
-        assertEquals(0, mutatedShare(new Environment(Map.of("temperature", 9.5), "loam")));
-        assertEquals(0, mutatedShare(new Environment(Map.of("temperature", 25.5), "loam")));
-        assertEquals(0, mutatedShare(new Environment(Map.of("rainfall", 18.0), "loam")));
+        assertEquals(0, hybridShare(new Environment(Map.of("temperature", 18.0), "sand")));
+        assertEquals(0, hybridShare(new Environment(Map.of("temperature", 18.0), null)));
+        assertEquals(0, hybridShare(new Environment(Map.of("temperature", 9.5), "loam")));
+        assertEquals(0, hybridShare(new Environment(Map.of("temperature", 25.5), "loam")));
+        assertEquals(0, hybridShare(new Environment(Map.of("rainfall", 18.0), "loam")));
     }
 
     /** A self-pollinating wild species that turns into the cultivated one in a cool, humid climate. */
@@ -145,7 +145,7 @@ class BreedingTest {
                 {"id": "wild_flax", "wild": {"fiber_strength": 2}},
                 {"id": "fiber_flax", "dominant": true, "wild": {"fiber_strength": 5}}
               ],
-              "mutations": [
+              "hybridizations": [
                 {"parents": ["wild_flax", "wild_flax"], "result": "fiber_flax", "chance": 0.25,
                  "conditions": {"climate": {"temperature": {"min": 4, "max": 16}, "humidity": {"min": 65}}}}
               ]
@@ -262,7 +262,7 @@ class BreedingTest {
     void reportedOddsMatchFrequenciesOverASeriesOfCrosses() {
         Breeding breeding = breeding(PLANTS);
         // A pair on which every rule plays: active or inactive allele, the shift and its stop
-        // at the maximum, dominance, a species mutation.
+        // at the maximum, dominance, a hybridization.
         Individual first = breeding.wild("wild_flax", Sex.NONE).with("fiber_strength", numbers(10, 2));
         Individual second = breeding.wild("wild_hemp", Sex.NONE)
                 .with("habit", new Chromosome(new Allele.Named("tall", true), new Allele.Named("dwarf", false)));
@@ -282,7 +282,7 @@ class BreedingTest {
                 new Chromosome(flax, hemp), 0.28125,
                 new Chromosome(hemp, flax), 0.28125), odds.chromosomes().get("species").odds());
         assertEquals(Map.of(Sex.NONE, 1.0), odds.sex().odds());
-        // Habit: the first gamete is dwarf only by mutation (0.25); the second by mutation or, half
+        // Habit: the first gamete is dwarf only by hybridization (0.25); the second by hybridization or, half
         // the time, from the parent's inactive allele (0.25 + 0.75 / 2 = 0.625). Tall is dominant,
         // so a mixed pair (0.75 * 0.625 + 0.25 * 0.375) always has tall active.
         Allele tall = new Allele.Named("tall", true);
