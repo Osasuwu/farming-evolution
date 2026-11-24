@@ -8,6 +8,7 @@ import io.github.osasuwu.farmingevolution.plant.PlantBlock;
 import io.github.osasuwu.farmingevolution.plant.PlantBlockEntity;
 import io.github.osasuwu.farmingevolution.plant.Products;
 import io.github.osasuwu.farmingevolution.plant.RemovedPlants;
+import io.github.osasuwu.farmingevolution.plant.Requirements;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -58,10 +59,13 @@ public final class FarmingEvolution {
     /** The product items of the varieties and species of {@link #PACK}. */
     public static final Products PRODUCTS = new Products(PACK, BREEDING, ITEMS);
 
+    /** The item tags of the raw-material requirements of {@link #PACK}. */
+    public static final Requirements REQUIREMENTS = new Requirements(PACK);
+
     /**
      * Plant fibre of the prototype: a plain item the check pipeline sends through a Create
-     * machine. No plant gives it any more, a harvest gives one of {@link #PRODUCTS}; the item
-     * stays until recipes take the products through a raw-material requirement (issue #47).
+     * machine (CreateMachineGameTests). No plant gives it and no requirement takes it; recipes
+     * take the products through a raw-material requirement ({@link #REQUIREMENTS}).
      */
     public static final DeferredItem<Item> FIBER = ITEMS.registerSimpleItem("fiber");
 
@@ -104,6 +108,7 @@ public final class FarmingEvolution {
         BLOCK_ENTITIES.register(modBus);
         DATA_COMPONENTS.register(modBus);
         ATTACHMENTS.register(modBus);
+        modBus.addListener(REQUIREMENTS::addPack);
     }
 
     private static PackData readPack() {
