@@ -95,7 +95,7 @@ public final class PlantGenomeGameTests {
             }
 
             // The loot of a ripe plant is two seeds and one product; the harvester keeps one seed.
-            // Which item the product is follows from the variety of the plant and is not checked here.
+            // Which item the product is, is not checked here.
             List<ItemStack> drops = helper.getLevel()
                     .getEntitiesOfClass(ItemEntity.class, new AABB(helper.absolutePos(PLANT)).inflate(3))
                     .stream().map(ItemEntity::getItem).toList();
