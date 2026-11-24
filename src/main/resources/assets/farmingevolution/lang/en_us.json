@@ -1,3 +1,5 @@
 {
-  "item.farmingevolution.fiber": "Fiber"
+  "block.farmingevolution.crop": "Crop",
+  "item.farmingevolution.fiber": "Fiber",
+  "item.farmingevolution.seeds": "Seeds"
 }
