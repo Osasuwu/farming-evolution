@@ -20,13 +20,14 @@ import java.util.Set;
  */
 public record PackData(
         Map<String, ChromosomeType> chromosomes, Map<String, Species> species, List<Mutation> mutations,
-        Map<String, Variety> varieties) {
+        Map<String, Variety> varieties, Map<String, Requirement> requirements) {
 
     public PackData {
         chromosomes = Collections.unmodifiableMap(new LinkedHashMap<>(chromosomes));
         species = Collections.unmodifiableMap(new LinkedHashMap<>(species));
         mutations = List.copyOf(mutations);
         varieties = Collections.unmodifiableMap(new LinkedHashMap<>(varieties));
+        requirements = Collections.unmodifiableMap(new LinkedHashMap<>(requirements));
     }
 
     /**
@@ -37,7 +38,7 @@ public record PackData(
         try {
             JsonObject root = JsonParser.parseReader(json).getAsJsonObject();
             String entry = "pack data: ";
-            known(root, entry, "chromosomes", "species", "mutations", "varieties");
+            known(root, entry, "chromosomes", "species", "mutations", "varieties", "requirements");
             Map<String, ChromosomeType> chromosomes = new LinkedHashMap<>();
             for (JsonElement element : get(root, "chromosomes", entry).getAsJsonArray()) {
                 ChromosomeType type = chromosomeType(element.getAsJsonObject());
@@ -54,15 +55,41 @@ public record PackData(
             }
             Map<String, Variety> varieties = new LinkedHashMap<>();
             for (JsonElement element : array(root, "varieties")) {
-                Variety variety = variety(element.getAsJsonObject(), chromosomes, species);
+                Variety variety = region(element.getAsJsonObject(), "variety", chromosomes, species);
                 add(varieties, "variety", variety.id(), variety);
             }
             checkRegions(varieties);
-            return new PackData(chromosomes, species, mutations, varieties);
+            Map<String, Requirement> requirements = new LinkedHashMap<>();
+            for (JsonElement element : array(root, "requirements")) {
+                Variety region = region(element.getAsJsonObject(), "requirement", chromosomes, species);
+                add(requirements, "requirement", region.id(),
+                        new Requirement(region.id(), region.species(), region.thresholds(), region.ceilings()));
+            }
+            PackData data = new PackData(chromosomes, species, mutations, varieties, requirements);
+            data.checkRequirements();
+            return data;
         } catch (JsonParseException | IllegalStateException | NumberFormatException
                 | UnsupportedOperationException | IndexOutOfBoundsException e) {
             // Not JSON, or a value of the wrong JSON type.
             throw new PackDataException("malformed pack data: " + e);
+        }
+    }
+
+    /** The varieties that pass the requirement, in pack data order. */
+    public List<Variety> passing(Requirement requirement) {
+        return varieties.values().stream().filter(requirement::passedBy).toList();
+    }
+
+    /**
+     * Makes sure a recipe that names a requirement can be made: every requirement is passed by
+     * at least one variety.
+     */
+    private void checkRequirements() {
+        for (Requirement requirement : requirements.values()) {
+            if (passing(requirement).isEmpty()) {
+                throw new PackDataException("requirement " + requirement.id() + ": no variety of "
+                        + requirement.species() + " passes it");
+            }
         }
     }
 
@@ -174,10 +201,15 @@ public record PackData(
         return new Mutation(first, second, result, chance, new Mutation.Condition(soils, climate));
     }
 
-    private static Variety variety(
-            JsonObject json, Map<String, ChromosomeType> chromosomes, Map<String, Species> species) {
-        String id = id(json, "variety");
-        String entry = "variety " + id + ": ";
+    /**
+     * An entry that names a species and a region of its trait values: a variety or a
+     * raw-material requirement, which are written and checked alike. Returned as a variety;
+     * kind is the word the messages call the entry.
+     */
+    private static Variety region(
+            JsonObject json, String kind, Map<String, ChromosomeType> chromosomes, Map<String, Species> species) {
+        String id = id(json, kind);
+        String entry = kind + " " + id + ": ";
         known(json, entry, "id", "species", "thresholds");
         String speciesId = get(json, "species", entry).getAsString();
         Species of = species.get(speciesId);
@@ -216,7 +248,7 @@ public record PackData(
     }
 
     /**
-     * One bound of a variety. It must narrow the trait's range: a bound on the open edge of the
+     * One bound of a variety or of a requirement. It must narrow the trait's range: a bound on the open edge of the
      * range (the range's min for "not below", its max for "not above") bounds nothing, and two
      * entries that differ only in such a bound would be one region written twice.
      */

@@ -13,5 +13,8 @@
     {"id": "strong_hemp", "species": "hemp", "thresholds": {"fiber_strength": 7}},
     {"id": "long_hemp", "species": "hemp", "thresholds": {"fiber_length": 7}},
     {"id": "select_hemp", "species": "hemp", "thresholds": {"fiber_strength": 7, "fiber_length": 7}}
+  ],
+  "requirements": [
+    {"id": "strong_fiber", "species": "fiber_flax", "thresholds": {"fiber_strength": 7}}
   ]
 }
