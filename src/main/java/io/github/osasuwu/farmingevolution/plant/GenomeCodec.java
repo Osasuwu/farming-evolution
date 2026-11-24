@@ -4,11 +4,14 @@ import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.mojang.logging.LogUtils;
 import io.github.osasuwu.farmingevolution.breeding.Allele;
+import io.github.osasuwu.farmingevolution.breeding.Breeding;
 import io.github.osasuwu.farmingevolution.breeding.Chromosome;
 import io.github.osasuwu.farmingevolution.breeding.Individual;
 import io.github.osasuwu.farmingevolution.breeding.Sex;
 import java.util.Locale;
+import org.slf4j.Logger;
 
 /**
  * How a genome is written into a save and sent over the network. The genome itself is the
@@ -20,6 +23,8 @@ import java.util.Locale;
  * {@code {id: "...", dominant: true}}.
  */
 public final class GenomeCodec {
+    private static final Logger LOGGER = LogUtils.getLogger();
+
     private static final Codec<Sex> SEX = Codec.STRING.comapFlatMap(GenomeCodec::sex, sex -> sex.name().toLowerCase(Locale.ROOT));
 
     private static final Codec<Allele.Named> NAMED = RecordCodecBuilder.create(named -> named.group(
@@ -45,6 +50,17 @@ public final class GenomeCodec {
     ).apply(individual, Individual::new));
 
     private GenomeCodec() {
+    }
+
+    /**
+     * The codec of a genome kept in a save. The save may be older than pack data: what pack
+     * data no longer has is replaced with the wild type on reading ({@link Breeding#restore}),
+     * and every replacement is a line in the log.
+     */
+    public static Codec<Individual> saved(Breeding breeding) {
+        return INDIVIDUAL.xmap(
+                genome -> breeding.restore(genome, replaced -> LOGGER.warn("Genome from a save: {}", replaced)),
+                genome -> genome);
     }
 
     private static DataResult<Sex> sex(String text) {

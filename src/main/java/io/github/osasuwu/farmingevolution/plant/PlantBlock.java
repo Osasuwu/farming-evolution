@@ -2,13 +2,18 @@ package io.github.osasuwu.farmingevolution.plant;
 
 import io.github.osasuwu.farmingevolution.FarmingEvolution;
 import io.github.osasuwu.farmingevolution.breeding.Individual;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 
 /**
  * A growing plant with a genome. The block is an ordinary crop, which is what harvesting
@@ -27,6 +32,21 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new PlantBlockEntity(pos, state);
+    }
+
+    /**
+     * The harvest. Seeds come from the loot table; the product is added here, because which
+     * item it is follows from the genome: a ripe plant gives one product of its variety, or of
+     * its species when it fits no variety. Every way of harvesting asks for the drops here, a
+     * hand and a machine alike. A plant without a genome has no species and gives no product.
+     */
+    @Override
+    protected List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
+        List<ItemStack> drops = new ArrayList<>(super.getDrops(state, params));
+        if (isMaxAge(state) && params.getOptionalParameter(LootContextParams.BLOCK_ENTITY) instanceof PlantBlockEntity plant) {
+            plant.genome().map(FarmingEvolution.PRODUCTS::of).ifPresent(product -> drops.add(new ItemStack(product)));
+        }
+        return drops;
     }
 
     /** The plant is being replaced by another block: its genome is kept until the end of the tick. */
