@@ -92,6 +92,51 @@ public final class Breeding {
     }
 
     /**
+     * Every condition a machine may select individuals by, in a fixed order: hold, a variety
+     * condition per variety, a requirement condition per requirement, for every numeric trait a
+     * condition per threshold from one above the trait's minimum to its maximum, and all. See
+     * {@link Selection} for what each passes.
+     *
+     * <p>An individual is first brought to pack data the way a harvest brings it
+     * ({@link #restore}, without reporting): one set by other code has not been through reading.
+     */
+    public List<Selection> selections() {
+        List<Selection> selections = new ArrayList<>();
+        selections.add(new Selection("hold", individual -> false));
+        for (Variety variety : data.varieties().values()) {
+            selections.add(new Selection("variety/" + variety.id(),
+                    individual -> variety(described(individual)).filter(variety::equals).isPresent()));
+        }
+        for (Requirement requirement : data.requirements().values()) {
+            List<Variety> passing = data.passing(requirement);
+            selections.add(new Selection("requirement/" + requirement.id(),
+                    individual -> variety(described(individual)).filter(passing::contains).isPresent()));
+        }
+        for (ChromosomeType type : data.chromosomes().values()) {
+            if (type instanceof ChromosomeType.Trait trait) {
+                for (int threshold = trait.min() + 1; threshold <= trait.max(); threshold++) {
+                    int lowest = threshold;
+                    selections.add(new Selection("trait/" + trait.id() + "/" + threshold, individual -> {
+                        Individual described = described(individual);
+                        return described.genome().containsKey(trait.id()) && described.trait(trait.id()) >= lowest;
+                    }));
+                }
+            }
+        }
+        selections.add(new Selection("all", individual -> true));
+        return List.copyOf(selections);
+    }
+
+    /** The condition with this id among {@link #selections()}; empty when pack data has none such. */
+    public Optional<Selection> selection(String id) {
+        return selections().stream().filter(selection -> selection.id().equals(id)).findFirst();
+    }
+
+    private Individual described(Individual individual) {
+        return restore(individual, replaced -> { });
+    }
+
+    /**
      * A genome read from a save, brought to what pack data describes now: the save may have
      * been written under other pack data. Each replacement is reported in one line.
      *

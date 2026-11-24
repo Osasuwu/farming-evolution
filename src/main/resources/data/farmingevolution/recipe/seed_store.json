@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "PPP",
+    "PCP",
+    "PPP"
+  ],
+  "key": {
+    "P": {"tag": "minecraft:planks"},
+    "C": {"item": "minecraft:chest"}
+  },
+  "result": {
+    "id": "farmingevolution:seed_store",
+    "count": 1
+  }
+}

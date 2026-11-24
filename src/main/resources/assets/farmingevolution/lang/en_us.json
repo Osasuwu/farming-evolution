@@ -1,5 +1,12 @@
 {
   "block.farmingevolution.crop": "Crop",
+  "block.farmingevolution.seed_store": "Seed Store",
+  "block.farmingevolution.seed_store.selection.all": "let out all seeds",
+  "block.farmingevolution.seed_store.selection.hold": "hold, let out nothing",
+  "block.farmingevolution.seed_store.selection.requirement": "seeds passing requirement %s",
+  "block.farmingevolution.seed_store.selection.trait": "%s at least %s",
+  "block.farmingevolution.seed_store.selection.variety": "seeds giving %s",
+  "block.farmingevolution.seed_store.status": "Selection: %s · stored %s seeds (%s genomes), %s pass",
   "block.farmingevolution.wild_berry_bush": "Wild Berry Bush",
   "block.farmingevolution.wild_flax": "Wild Flax",
   "item.farmingevolution.analyzer": "Analyzer",

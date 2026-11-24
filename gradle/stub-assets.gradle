@@ -93,6 +93,17 @@ var generateStubAssets = tasks.register('generateStubAssets') {
                                     [4, 6], [11, 6], [5, 7], [10, 7], [6, 8], [7, 8], [8, 8], [9, 8], [3, 5], [12, 5], [7, 1], [8, 1]],
                                    ['5b7fd6', [6, 4], [7, 4], [8, 4], [9, 4], [6, 5], [7, 5], [8, 5], [9, 5], [6, 6], [7, 6], [8, 6], [9, 6]]],
         ]
+        // The seed store (issue #30): boards with dark seams, a band of seeds across the front.
+        List boards = [['9c7344'] + (0..15).collectMany { x -> (0..15).collect { y -> [x, y] } },
+                       ['5e4220'] + (0..15).collectMany { x -> [[x, 0], [x, 5], [x, 10], [x, 15]] }
+                               + (0..15).collectMany { y -> [[0, y], [15, y]] }]
+        png('block/seed_store_top', boards)
+        png('block/seed_store_side', boards + [['7a5230', [3, 7], [4, 7], [7, 8], [8, 8], [11, 7], [12, 7]]])
+        json('blockstates/seed_store.json', [variants: ['': [model: 'farmingevolution:block/seed_store']]])
+        json('models/block/seed_store.json', [parent: 'minecraft:block/cube_column', textures: [
+                end: 'farmingevolution:block/seed_store_top', side: 'farmingevolution:block/seed_store_side']])
+        json('models/item/seed_store.json', [parent: 'farmingevolution:block/seed_store'])
+
         items.each { name, strokes ->
             png("item/${name}", strokes)
             json("models/item/${name}.json", [parent: 'minecraft:item/generated', textures: [layer0: "farmingevolution:item/${name}"]])
