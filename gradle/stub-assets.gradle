@@ -87,6 +87,11 @@ var generateStubAssets = tasks.register('generateStubAssets') {
                 wild_flax_fiber : bundle('b8ab8a', '6b5a3a'),
                 fiber_flax_fiber: bundle('cdb37a', '6b5a3a'),
                 strong_flax     : bundle('e0c25a', '8a3b1f'),
+                // The analyzer: a cogwheel ring on a shaft handle, a lens in the middle.
+                analyzer        : [['8a8a80'] + column(7, 9, 14) + column(8, 9, 14),
+                                   ['b08a50', [5, 3], [6, 2], [7, 2], [8, 2], [9, 2], [10, 3], [4, 4], [11, 4], [4, 5], [11, 5],
+                                    [4, 6], [11, 6], [5, 7], [10, 7], [6, 8], [7, 8], [8, 8], [9, 8], [3, 5], [12, 5], [7, 1], [8, 1]],
+                                   ['5b7fd6', [6, 4], [7, 4], [8, 4], [9, 4], [6, 5], [7, 5], [8, 5], [9, 5], [6, 6], [7, 6], [8, 6], [9, 6]]],
         ]
         items.each { name, strokes ->
             png("item/${name}", strokes)
