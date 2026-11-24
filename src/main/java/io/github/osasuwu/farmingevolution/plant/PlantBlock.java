@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -42,10 +43,11 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
      * its species when it fits no variety. Every way of harvesting asks for the drops here, a
      * hand and a machine alike. A plant without a genome has no species and gives no product.
      *
-     * <p>The seeds of a ripe plant are its offspring: each seed is one cross of the plant with
-     * itself, so its traits may move off the parent's (CONCEPT.md, "Селекция": selection from
-     * wild populations, before crossing exists), crossed in the climate of the place where the
-     * plant grew. An unripe plant gives back the seed it grew from unchanged.
+     * <p>The seeds of a ripe plant are its offspring: each seed is one cross of the plant's
+     * {@link PlantBlockEntity#parents() parents}, the plant with itself (selection) or with the
+     * pollen the analyzer put on it (crossing), in the climate of the place where the plant
+     * grew, so its traits may move off the parents'. An unripe plant gives back the seed it
+     * grew from unchanged.
      */
     @Override
     protected List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
@@ -55,12 +57,7 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
             return loot;
         }
         Individual genome = plant.genome().get();
-        // A genome set by a command has not been through the reading of a save; see Products.of.
-        Individual parent = FarmingEvolution.BREEDING.restore(genome, replaced -> { });
-        // The climate of the place decides which hybridizations of pack data may happen. There
-        // is no soil model yet, so a hybridization that needs a soil does not happen.
-        BlockPos pos = BlockPos.containing(params.getParameter(LootContextParams.ORIGIN));
-        Environment environment = new Environment(FarmingEvolution.CLIMATE.at(params.getLevel(), pos).readings(), null);
+        PlantBlockEntity.Parents parents = plant.parents().orElseThrow();
         Random random = new Random(params.getLevel().random.nextLong());
         List<ItemStack> drops = new ArrayList<>();
         for (ItemStack stack : loot) {
@@ -70,12 +67,22 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
             }
             for (int i = 0; i < stack.getCount(); i++) {
                 ItemStack seed = stack.copyWithCount(1);
-                seed.set(FarmingEvolution.GENOME, FarmingEvolution.BREEDING.cross(parent, parent, environment, random));
+                seed.set(FarmingEvolution.GENOME, parents.cross(random));
                 drops.add(seed);
             }
         }
         drops.add(new ItemStack(FarmingEvolution.PRODUCTS.of(genome)));
         return drops;
+    }
+
+    /**
+     * The conditions of a cross of plants growing at the position: the harvest rolls under them
+     * and the analyzer shows the odds under them. The climate of the place decides which
+     * hybridizations of pack data may happen. There is no soil model yet, so a hybridization that
+     * needs a soil does not happen.
+     */
+    static Environment environmentAt(LevelReader level, BlockPos pos) {
+        return new Environment(FarmingEvolution.CLIMATE.at(level, pos).readings(), null);
     }
 
     /** The plant is being replaced by another block: its genome is kept until the end of the tick. */

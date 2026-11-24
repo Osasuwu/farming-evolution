@@ -11,6 +11,7 @@ import io.github.osasuwu.farmingevolution.breeding.PackData;
 import io.github.osasuwu.farmingevolution.breeding.PackDataException;
 import io.github.osasuwu.farmingevolution.climate.ClimateSource;
 import io.github.osasuwu.farmingevolution.climate.GradientClimate;
+import io.github.osasuwu.farmingevolution.plant.AnalyzerItem;
 import io.github.osasuwu.farmingevolution.plant.GenomeCodec;
 import io.github.osasuwu.farmingevolution.plant.PlantBlock;
 import io.github.osasuwu.farmingevolution.plant.PlantBlockEntity;
@@ -98,6 +99,19 @@ public final class FarmingEvolution {
             DATA_COMPONENTS.registerComponentType("genome", genome -> genome
                     .persistent(GenomeCodec.saved(BREEDING))
                     .networkSynchronized(ByteBufCodecs.fromCodecWithRegistries(GenomeCodec.INDIVIDUAL)));
+
+    /**
+     * The pollen an {@link AnalyzerItem analyzer} carries: the genome of the plant it was taken
+     * from. A pollinated plant keeps the same value in its block entity.
+     */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Individual>> POLLEN =
+            DATA_COMPONENTS.registerComponentType("pollen", pollen -> pollen
+                    .persistent(GenomeCodec.saved(BREEDING))
+                    .networkSynchronized(ByteBufCodecs.fromCodecWithRegistries(GenomeCodec.INDIVIDUAL)));
+
+    /** The equipment of crossing: shows alleles and odds, carries pollen. */
+    public static final DeferredItem<AnalyzerItem> ANALYZER = ITEMS.register("analyzer",
+            () -> new AnalyzerItem(new Item.Properties().stacksTo(1)));
 
     /**
      * The growing plant of the storage prototype: one crop block for every species, since
