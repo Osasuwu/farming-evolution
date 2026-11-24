@@ -11,6 +11,7 @@ class TrackedFilesCheckTest {
         assertEquals(List.of(), TrackedFilesCheck.forbidden(List.of(
                 "build.gradle",
                 "checks/build.gradle",
+                "breeding/build.gradle",
                 "gradle/wrapper/gradle-wrapper.jar",
                 "src/main/java/io/github/osasuwu/farmingevolution/FarmingEvolution.java",
                 "src/main/java/io/github/osasuwu/farmingevolution/run/Runner.java",
@@ -24,6 +25,7 @@ class TrackedFilesCheckTest {
         List<String> paths = List.of(
                 "build/moddev/artifacts/neoforge-21.1.267-sources.jar",
                 "checks/build/classes/java/main/A.class",
+                "breeding/build/classes/java/main/B.class",
                 "decompiled/net/minecraft/world/level/Level.java",
                 "net/minecraft/server/MinecraftServer.java",
                 "libs/com/mojang/brigadier/CommandDispatcher.java",

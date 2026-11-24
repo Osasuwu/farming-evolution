@@ -12,3 +12,6 @@ rootProject.name = 'farming-evolution'
 
 // Plain-Java helpers used by the check pipeline (no Minecraft on the classpath).
 include 'checks'
+
+// The inheritance engine: plain Java, no Minecraft on the classpath.
+include 'breeding'
