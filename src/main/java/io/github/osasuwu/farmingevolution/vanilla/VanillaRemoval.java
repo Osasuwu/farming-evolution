@@ -98,7 +98,13 @@ public final class VanillaRemoval {
             return;
         }
         Entity entity = event.getEntity();
-        if (isHostile(entity.getType()) || entity instanceof ItemEntity item && isRemoved(item.getItem())) {
+        if (isHostile(entity.getType())) {
+            // A mob kept out may already sit on a horse or carry a rider (the skeleton trap seats
+            // its skeletons first); left seated, it would hold the other one forever.
+            entity.stopRiding();
+            entity.ejectPassengers();
+            event.setCanceled(true);
+        } else if (entity instanceof ItemEntity item && isRemoved(item.getItem())) {
             event.setCanceled(true);
         }
     }

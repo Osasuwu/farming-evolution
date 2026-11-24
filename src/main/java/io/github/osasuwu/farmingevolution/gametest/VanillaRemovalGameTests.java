@@ -115,6 +115,32 @@ public final class VanillaRemovalGameTests {
     }
 
     /**
+     * The skeleton trap seats a skeleton on each horse before it adds them to the world. The
+     * skeleton is kept out, and the horse comes without a rider, free for the player to mount.
+     */
+    @GameTest(template = "empty")
+    public static void horseComesWithoutHostileRider(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        Vec3 at = Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(1, 2, 1)));
+        Entity horse = EntityType.SKELETON_HORSE.create(level);
+        Entity skeleton = EntityType.SKELETON.create(level);
+        if (horse == null || skeleton == null) {
+            throw new GameTestAssertException("no horse or skeleton");
+        }
+        horse.moveTo(at);
+        skeleton.moveTo(at);
+        skeleton.startRiding(horse);
+        level.addFreshEntityWithPassengers(horse);
+        helper.assertEntityPresent(EntityType.SKELETON_HORSE);
+        helper.assertEntityNotPresent(EntityType.SKELETON);
+        if (!horse.getPassengers().isEmpty()) {
+            throw new GameTestAssertException("horse keeps a rider: " + horse.getPassengers());
+        }
+        horse.discard();
+        helper.succeed();
+    }
+
+    /**
      * Lightning turns a villager into a witch and a pig into a zombified piglin: the game adds
      * the new mob and takes the old one away. The world accepts no hostile mob, so the
      * conversion must not start, or the animal would just vanish.
