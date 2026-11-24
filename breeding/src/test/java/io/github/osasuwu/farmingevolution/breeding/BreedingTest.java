@@ -137,6 +137,63 @@ class BreedingTest {
         assertEquals(0, mutatedShare(new Environment(Map.of("rainfall", 18.0), "loam")));
     }
 
+    /** A self-pollinating wild species that turns into the cultivated one in a cool, humid climate. */
+    private static final String DOMESTICATION = """
+            {
+              "chromosomes": [{"id": "fiber_strength", "kind": "trait", "min": 1, "max": 10, "shift_chance": 0.2}],
+              "species": [
+                {"id": "wild_flax", "wild": {"fiber_strength": 2}},
+                {"id": "fiber_flax", "dominant": true, "wild": {"fiber_strength": 5}}
+              ],
+              "mutations": [
+                {"parents": ["wild_flax", "wild_flax"], "result": "fiber_flax", "chance": 0.25,
+                 "conditions": {"climate": {"temperature": {"min": 4, "max": 16}, "humidity": {"min": 65}}}}
+              ]
+            }
+            """;
+
+    /** The odds that one wild_flax crossed with itself in the climate gives a fiber_flax. */
+    private static double domesticated(double temperature, double humidity) {
+        Breeding breeding = breeding(DOMESTICATION);
+        Individual flax = breeding.wild("wild_flax", Sex.NONE);
+        Environment climate = new Environment(Map.of("temperature", temperature, "humidity", humidity), null);
+        double odds = 0;
+        for (Map.Entry<Chromosome, Double> pair : breeding.odds(flax, flax, climate).chromosomes().get("species").odds().entrySet()) {
+            odds += ((Allele.Named) pair.getKey().active()).id().equals("fiber_flax") ? pair.getValue() : 0;
+        }
+        return odds;
+    }
+
+    @Test
+    void selfPollinationHybridizesOnlyWhereEveryClimateReadingIsInRange() {
+        // A gamete turns with 0.25, and fiber_flax is dominant: 1 - 0.75^2 of the offspring express it.
+        assertEquals(0.4375, domesticated(12, 85), 1e-12);
+        assertEquals(0.4375, domesticated(4, 65), 1e-12);
+        assertEquals(0.4375, domesticated(16, 100), 1e-12);
+
+        assertEquals(0, domesticated(12, 64.9));
+        assertEquals(0, domesticated(3.9, 85));
+        assertEquals(0, domesticated(16.1, 85));
+        assertEquals(0, domesticated(-6, 15));
+
+        // The roll follows the same odds: some offspring of a seeded run in the climate are
+        // fiber_flax, none outside it.
+        Breeding breeding = breeding(DOMESTICATION);
+        Individual flax = breeding.wild("wild_flax", Sex.NONE);
+        Environment cool = new Environment(Map.of("temperature", 12.0, "humidity", 85.0), null);
+        Environment dry = new Environment(Map.of("temperature", 12.0, "humidity", 15.0), null);
+        Random random = new Random(5);
+        int inCool = 0;
+        int inDry = 0;
+        for (int i = 0; i < 1000; i++) {
+            inCool += breeding.cross(flax, flax, cool, random).species().equals("fiber_flax") ? 1 : 0;
+            inDry += breeding.cross(flax, flax, dry, random).species().equals("fiber_flax") ? 1 : 0;
+        }
+        // 1000 offspring: one standard deviation is about 16, so 0.4375 +- 0.08 is five of them.
+        assertEquals(0.4375, inCool / 1000.0, 0.08);
+        assertEquals(0, inDry);
+    }
+
     private static final String ANIMALS = """
             {
               "chromosomes": [
