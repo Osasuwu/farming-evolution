@@ -9,13 +9,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BushBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootParams;
 
 /**
  * Wild flax, the wild source of the flax line (CONCEPT.md, "Вертикальный срез"). World
- * generation scatters it over the overworld, and it slowly spreads to the ground next to it,
+ * generation scatters it over the overworld, and it slowly spreads to the grass next to it,
  * so a player who lost every plant and seed finds it again. Breaking it gives seeds of the
  * wild type of {@link #SPECIES}.
  */
@@ -57,7 +58,10 @@ public final class WildFlaxBlock extends BushBlock {
         return true;
     }
 
-    /** Spreads to one random free spot next to it where it can grow, unless the spot is crowded. */
+    /**
+     * Spreads to one random free spot on grass next to it, unless the spot is crowded. Only
+     * grass: tilled farmland and other dirt of the player's field stay free of it.
+     */
     @Override
     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
         if (random.nextInt(SPREAD_CHANCE) != 0) {
@@ -70,7 +74,8 @@ public final class WildFlaxBlock extends BushBlock {
             }
         }
         BlockPos target = pos.offset(random.nextInt(3) - 1, random.nextInt(3) - 1, random.nextInt(3) - 1);
-        if (level.isEmptyBlock(target) && state.canSurvive(level, target)) {
+        if (level.isEmptyBlock(target) && level.getBlockState(target.below()).is(Blocks.GRASS_BLOCK)
+                && state.canSurvive(level, target)) {
             level.setBlock(target, state, 2);
         }
     }

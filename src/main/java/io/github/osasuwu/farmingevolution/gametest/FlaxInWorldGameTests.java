@@ -212,6 +212,27 @@ public final class FlaxInWorldGameTests {
     }
 
     /**
+     * Wild flax does not spread onto the player's tilled field: one plant on grass among
+     * farmland stays the only one.
+     */
+    @GameTest(template = "empty")
+    public static void wildFlaxDoesNotSpreadOntoFarmland(GameTestHelper helper) {
+        Block wildFlax = block("wild_flax");
+        BlockPos.betweenClosed(0, 1, 0, 2, 1, 2).forEach(pos -> helper.setBlock(pos, Blocks.FARMLAND));
+        helper.setBlock(WILD.below(), Blocks.GRASS_BLOCK);
+        helper.setBlock(WILD, wildFlax);
+        for (int i = 0; i < 20000; i++) {
+            helper.randomTick(WILD);
+        }
+        List<BlockPos> plants = positionsOf(helper, wildFlax, new BlockPos(-1, 0, -1), new BlockPos(3, 3, 3));
+        if (plants.size() != 1) {
+            throw new GameTestAssertException("Expected wild flax to stay off the farmland, got " + plants);
+        }
+        helper.setBlock(WILD, Blocks.AIR);
+        helper.succeed();
+    }
+
+    /**
      * World generation: every biome of the overworld has the patches of wild flax and of wild
      * berry bushes among its features, and a patch put on a lawn plants its block there.
      */
