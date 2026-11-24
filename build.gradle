@@ -12,6 +12,34 @@ base {
 
 repositories {
     mavenCentral()
+    maven {
+        name = 'Create'
+        url = 'https://maven.createmod.net'
+        content {
+            includeGroup 'com.simibubi.create'
+            includeGroup 'net.createmod.ponder'
+            includeGroup 'dev.engine-room.flywheel'
+        }
+    }
+    maven {
+        name = 'Registrate'
+        url = 'https://maven.ithundxr.dev/snapshots'
+        content { includeGroup 'com.tterrag.registrate' }
+    }
+    maven {
+        name = 'KubeJS'
+        url = 'https://maven.latvian.dev/releases'
+        content {
+            includeGroup 'dev.latvian.mods'
+            includeGroup 'dev.latvian.apps'
+        }
+    }
+    maven {
+        // A runtime library of KubeJS is published only here.
+        name = 'JitPack'
+        url = 'https://jitpack.io'
+        content { includeGroup 'com.github.rtyley' }
+    }
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -72,6 +100,16 @@ dependencies {
     // from the additional classpath and the mod jar carries its classes (see jar below).
     implementation project(':breeding')
     additionalRuntimeClasspath project(':breeding')
+
+    // The pack's backbone mods, present in every run configuration of the dev environment.
+    // The mod's code does not compile against them: GameTests reach Create through registries.
+    // Coordinates: https://wiki.createmod.net/developers/depend-on-create/neoforge-1.21.1
+    runtimeOnly("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
+    runtimeOnly "net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}"
+    runtimeOnly "dev.engine-room.flywheel:flywheel-neoforge-${minecraft_version}:${flywheel_version}"
+    runtimeOnly "com.tterrag.registrate:Registrate:${registrate_version}"
+    // Coordinates: https://github.com/KubeJS-Mods/KubeJS/tree/2101#readme
+    runtimeOnly "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
@@ -100,6 +138,21 @@ tasks.withType(JavaCompile).configureEach {
 // One file to install: the mod jar carries the classes of the inheritance engine.
 tasks.named('jar') {
     from { project(':breeding').sourceSets.main.output }
+}
+
+// ---------------------------------------------------------------------------
+// The pack's KubeJS directory (scripts, data, assets, config) is kubejs/, tracked by git.
+// KubeJS reads <game directory>/kubejs, and the game directories (run/) are not tracked,
+// so every run first gets an exact copy: a script deleted from the repository does not
+// survive in a run directory. KubeJS re-creates its own generated files on start.
+// ---------------------------------------------------------------------------
+
+[runClient: 'run', runGameTestServer: 'run/gametest', runSmokeServer: 'run/smoke'].each { runTask, gameDir ->
+    var sync = tasks.register("syncKubeJsFor${runTask.capitalize()}", Sync) {
+        from layout.projectDirectory.dir('kubejs')
+        into layout.projectDirectory.dir("${gameDir}/kubejs")
+    }
+    tasks.named(runTask) { dependsOn sync }
 }
 
 // ---------------------------------------------------------------------------
