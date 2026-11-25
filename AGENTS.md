@@ -188,6 +188,12 @@ git log origin/main --oneline -E --grep="^checks(\(.+\))?: "
 - В тексте PR кадр вставляется картинкой по ссылке
   `https://raw.githubusercontent.com/Osasuwu/farming-evolution/<sha коммита>/pr-<N>/<имя>.png`:
   по sha коммита, не по имени ветки, чтобы ссылка не менялась.
+- Кадр добавляется через API GitHub, локальный коммит в `pr-assets` не делается и хук
+  `pre-commit` не обходится: в ветке-сироте ему нет `checks/`. Тело запроса — JSON-файл с
+  полями `branch` (`pr-assets`), `message` и `content` (кадр в base64): в аргументе командной
+  строки кадр не помещается (`Argument list too long`). Команда
+  `gh api --method PUT repos/Osasuwu/farming-evolution/contents/pr-<N>/<имя>.png --input <файл.json> --jq .commit.sha`
+  печатает sha коммита для ссылки.
 - Ветка только дополняется: `--force` и удаление запрещены.
 - В ветки PR и в `main` кадры не попадают. В `pr-assets` нет ничего, кроме кадров и её
   `README.md`.
