@@ -2,14 +2,10 @@ package io.github.osasuwu.farmingevolution.gametest;
 
 import com.mojang.authlib.GameProfile;
 import io.github.osasuwu.farmingevolution.FarmingEvolution;
-import io.github.osasuwu.farmingevolution.breeding.Allele;
-import io.github.osasuwu.farmingevolution.breeding.Chromosome;
 import io.github.osasuwu.farmingevolution.breeding.Individual;
 import io.github.osasuwu.farmingevolution.breeding.Sex;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -76,14 +72,24 @@ public final class AnalyzerClimateGameTests {
         helper.succeed();
     }
 
-    /** The analyzer's lines tell the parts apart by colour, as the goggles do; a refusal is red. */
+    /**
+     * The analyzer's lines tell the parts apart by colour, as the goggles do; a refusal is red.
+     * The header and the species line are found by their start: whether they speak of the
+     * carried allele is not asked here (issue #104 hides it in the goggles, whose line the
+     * analyzer shares).
+     */
     @GameTest(template = "empty")
     public static void analyzerColoursHeadersNamesAllelesAndProduct(GameTestHelper helper) {
         Breeder breeder = new Breeder(helper);
         List<Component> lines = analyzeAt(helper, breeder, NEAR_ORIGIN, wild("fiber_flax"));
         List<String> text = strings(lines);
-        Component header = lines.get(text.indexOf("Plant, alleles (expressed | carried):"));
-        Component species = lines.get(text.indexOf("  species: fiber_flax | fiber_flax"));
+        Component header = BreederGogglesGameTests.lineStartingWith(lines, "Plant");
+        // The chromosome line, not a line of odds ("fiber_flax & fiber_flax ...").
+        Component species = lines.stream().filter(line -> line.getString().equals("  species: fiber_flax")
+                || line.getString().startsWith("  species: fiber_flax | ")).findFirst().orElse(null);
+        if (header == null || species == null) {
+            throw new GameTestAssertException("No header of the plant or no species line among " + text);
+        }
         Component product = lines.stream().filter(line -> line.getString().startsWith("  gives ")).findFirst()
                 .orElseThrow(() -> new GameTestAssertException("No product among " + text));
         String productName = product.getString().substring("  gives ".length());
@@ -100,34 +106,6 @@ public final class AnalyzerClimateGameTests {
             throw new GameTestAssertException("Expected the header, the name, the allele and the product in four colours, got "
                     + headerColor + ", " + name + ", " + allele + ", " + item);
         }
-        helper.succeed();
-    }
-
-    /**
-     * The analyzer explains the two alleles with the legend of the goggles (issue #105): the line
-     * stands once, right under the alleles of the plant, and its words wear the colours of the
-     * expressed and the carried value.
-     */
-    @GameTest(template = "empty")
-    public static void analyzerShowsTheAlleleLegendOfTheGoggles(GameTestHelper helper) {
-        Breeder breeder = new Breeder(helper);
-        Map<String, Chromosome> genome = new LinkedHashMap<>(wild("fiber_flax").genome());
-        genome.put("fiber_strength", new Chromosome(new Allele.Numeric(7), new Allele.Numeric(4)));
-        List<Component> lines = analyzeAt(helper, breeder, NEAR_ORIGIN, new Individual(Sex.NONE, genome));
-        List<String> text = strings(lines);
-        String legend = "  " + BreederGogglesGameTests.LEGEND;
-        int at = text.indexOf(legend);
-        if (at < 0 || at != text.lastIndexOf(legend)) {
-            throw new GameTestAssertException("Expected the legend of the alleles once among " + text);
-        }
-        int header = text.indexOf("Plant, alleles (expressed | carried):");
-        int strength = text.indexOf("  fiber_strength: 7 | 4");
-        if (header < 0 || strength < 0 || !text.get(at + 1).startsWith("  gives ")
-                || text.subList(header + 1, at).size() != genome.size()) {
-            throw new GameTestAssertException("Expected the legend right after the alleles of the plant, before its product,"
-                    + " got " + text);
-        }
-        BreederGogglesGameTests.expectLegendColours(lines.get(at), lines.get(strength), "7", "4");
         helper.succeed();
     }
 

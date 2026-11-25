@@ -70,32 +70,40 @@ JEI (со своей библиотекой MezzConfig, лицензия MIT) е
 
 ```
 Breeding simulation (<путь>/checks/breeding-simulation.json):
-  variety strong_fiber, method selection: median 10 generations (90 min), worst 32 generations (288 min); 1000 of 1000 lines reached the thresholds within 40 generations
-  variety strong_fiber, method crossing: median 8 generations (72 min), worst 14 generations (126 min); 1000 of 1000 lines reached the thresholds within 40 generations
-  requirement strong_fiber, method selection: variety strong_fiber, median 10 generations (90 min), worst 32 generations (288 min)
-  requirement strong_fiber, method crossing: variety strong_fiber, median 8 generations (72 min), worst 14 generations (126 min)
+  variety strong_flax, method selection: median 4 generations (36 min), worst 12 generations (108 min); 1000 of 1000 lines reached the thresholds within 180 min
+  variety strong_flax, method wind: median 4 generations (36 min), worst 15 generations (135 min); 1000 of 1000 lines reached the thresholds within 180 min
+  requirement strong_fiber, method selection: variety strong_flax, median 4 generations (36 min), worst 12 generations (108 min)
+  requirement strong_fiber, method wind: variety strong_flax, median 4 generations (36 min), worst 15 generations (135 min)
 Gaps between varieties:
-  species flax: no variety for fiber_strength 1..6
+  species wild_flax: no varieties
+  species fiber_flax: no variety for fiber_strength 1..6
+  species oil_flax: no varieties
 ```
 
-Команда падает в двух случаях: хотя бы одна линия не дошла до сорта за предел поколений, или
-требование к сырью недостижимо каким-то методом (второе не бывает без первого: недостижимо то
+Команда падает в двух случаях: хотя бы одна линия не дошла до сорта за предел времени метода,
+или требование к сырью недостижимо каким-то методом (второе не бывает без первого: недостижимо то
 требование, до проходящих сортов которого не дошли все линии). Пробелы команду не роняют: это список для
-автора данных. Все числа — в [checks/breeding-simulation.json](checks/breeding-simulation.json): данные сборки
-(`pack`, формат — в [breeding/README.md](breeding/README.md)), зерно `seed`, число линий `runs`,
-предел `generation_limit` и методы. При том же файле результат тот же.
+автора данных. Все числа — в [checks/breeding-simulation.json](checks/breeding-simulation.json):
+данные сборки (`pack` — путь к данным мода `src/main/resources/farmingevolution/pack.json` или
+данные прямо в сценарии, формат — в [breeding/README.md](breeding/README.md)), зерно `seed`,
+число линий `runs`, семян с растения `seeds_per_plant`, время от посева до спелого растения
+`minutes_per_generation` и методы. При том же файле результат тот же.
 
-Модель. Линия начинается с двух диких особей вида сорта. В каждом поколении пара даёт
-`offspring` потомков, два лучших (у двуполого вида — лучшая самка и лучший самец) становятся
-следующей парой, прежняя пара не сохраняется. Линия дошла до сорта, когда оба родителя лежат в
-его области: каждое выраженное значение не ниже порога «не ниже» и не выше порога «не выше».
-Линия, у которой признак ушёл выше порога «не выше», до сорта не дошла. Лучшие потомки — те,
-что ближе к области сорта с обеих сторон: значение засчитывается до порога «не ниже», а всё,
-что выше порога «не выше», вычитается; излишек одного признака недостачу другого не покрывает.
-Методы различаются тем, что видно при выборе: `"sees": "expressed"` —
-только выраженное значение признака (отбор), `"sees": "alleles"` — оба аллеля (скрещивание с
-анализатором). Время — число поколений, умноженное на `minutes_per_generation` метода. Среда в
-сценарии не задаётся, поэтому гибридизации с условиями в симуляторе не срабатывают.
+Модель (#104, AC7 в [CONCEPT.md](CONCEPT.md)). Линия — грядка из `plants` растений метода,
+засеянная дикими семенами вида сорта. В каждом поколении каждое растение созревает, опыляется и
+даёт `seeds_per_plant` семян; семя — скрещивание растения с отцом. Методы различаются отцом
+(`pollination`): `"self"` — само растение (отбор: растения стоят порознь и опыляют себя сами),
+`"wind"` — для каждого семени случайное другое растение грядки (ветроопыление: все растения
+стоят рядом; растение без соседей опыляет себя само). Игрок видит только проявленные значения:
+семена ранжируются по ним, лучшие, сколько вмещает грядка, засеваются снова, при равенстве — в
+порядке сбора; прежние растения не сохраняются. Линия дошла до сорта, когда хотя бы одно
+посеянное растение лежит в его области — его урожай даёт продукт сорта: каждое проявленное
+значение не ниже порога «не ниже» и не выше порога «не выше». Лучшие семена — те, что ближе к
+области сорта с обеих сторон: значение засчитывается до порога «не ниже», а всё, что выше
+порога «не выше», вычитается; излишек одного признака недостачу другого не покрывает. Время —
+число поколений, умноженное на `minutes_per_generation`; предел метода `minutes_limit` — целое
+число поколений в нём. Вид с полами симулятор не принимает: растение такого вида не опылит себя
+само. Среда в сценарии не задаётся, поэтому гибридизации с условиями в симуляторе не срабатывают.
 
 Требования к сырью. Отдельных линий под требование симулятор не выводит: линия, дошедшая до
 сорта, который проходит требование, даёт нужное сырьё. Строка `requirement` называет для

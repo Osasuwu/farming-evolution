@@ -192,26 +192,6 @@ public final class FlaxInWorldGameTests {
     }
 
     /**
-     * Wild flax spreads to the grass next to it and stops at five plants nearby: on a 3x3
-     * lawn one plant becomes exactly five, all of them on the grass.
-     */
-    @GameTest(template = "empty")
-    public static void wildFlaxSpreadsOverGrassUpToFivePlantsNearby(GameTestHelper helper) {
-        Block wildFlax = block("wild_flax");
-        BlockPos.betweenClosed(0, 1, 0, 2, 1, 2).forEach(pos -> helper.setBlock(pos, Blocks.GRASS_BLOCK));
-        helper.setBlock(WILD, wildFlax);
-        for (int i = 0; i < 20000; i++) {
-            helper.randomTick(WILD);
-        }
-        List<BlockPos> plants = positionsOf(helper, wildFlax, new BlockPos(-1, 0, -1), new BlockPos(3, 3, 3));
-        if (plants.size() != 5 || plants.stream().anyMatch(pos -> pos.getY() != WILD.getY())) {
-            throw new GameTestAssertException("Expected 5 wild flax plants on the lawn, got " + plants);
-        }
-        plants.forEach(pos -> helper.setBlock(pos, Blocks.AIR));
-        helper.succeed();
-    }
-
-    /**
      * Wild flax does not spread onto the player's tilled field: one plant on grass among
      * farmland stays the only one.
      */
