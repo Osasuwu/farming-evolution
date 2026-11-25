@@ -5,6 +5,9 @@
 command /time set day
 command /gamerule doDaylightCycle false
 command /clear @s
+# A store left by an earlier run would take the place of the new one.
+command /setblock 4 -60 3 air
+command /kill @e[type=item]
 tp 4.5 -60 0.5 0 30
 command /give @s farmingevolution:seed_store
 command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:2,inactive:2}}}] 16

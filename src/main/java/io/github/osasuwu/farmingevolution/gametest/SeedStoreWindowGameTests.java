@@ -228,6 +228,36 @@ public final class SeedStoreWindowGameTests {
         });
     }
 
+    /**
+     * The store remembers per slot that a seed is held. A hopper under a store on hold finds
+     * nothing to take; once the window's button sets a condition the seed passes, the seed it
+     * had been refused comes out, and the one still failing stays.
+     */
+    @GameTest(template = "empty", timeoutTicks = 200)
+    public static void heldSeedComesOutOnceWindowSetsAPassingCondition(GameTestHelper helper) {
+        BlockPos storePos = new BlockPos(1, 2, 1);
+        helper.setBlock(storePos, SeedStore.BLOCK.get());
+        SeedStoreBlockEntity store = store(helper, storePos);
+        insertAll(store.storage(), seed(flax(5), 1));
+        insertAll(store.storage(), seed(flax(9), 1));
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        SeedStoreMenu menu = menu(helper, store, player);
+        helper.setBlock(storePos.below(), Blocks.HOPPER.defaultBlockState().setValue(HopperBlock.FACING, Direction.DOWN));
+        IItemHandler hopper = helper.getLevel().getCapability(Capabilities.ItemHandler.BLOCK,
+                helper.absolutePos(storePos.below()), Direction.UP);
+        helper.startSequence()
+                .thenExecuteAfter(30, () -> {
+                    assertSeeds("hopper under the store on hold", Map.of(), contents(hopper));
+                    press(menu, player, SeedStoreMenu.select(indexOf(SeedStoreBlockEntity.selections(),
+                            "variety/strong_flax")));
+                })
+                .thenExecuteAfter(40, () -> {
+                    assertSeeds("hopper", Map.of(label(flax(9)), 1), contents(hopper));
+                    assertSeeds("store", Map.of(label(flax(5)), 1), store.contents());
+                })
+                .thenSucceed();
+    }
+
     // ---- Filter and sort ----
 
     /**
