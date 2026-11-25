@@ -74,7 +74,7 @@ public final class GogglesHud {
             List<Component> lines = new ArrayList<>();
             lines.add(Component.translatableWithFallback("goggles." + FarmingEvolution.MOD_ID + ".plant_header", "Plant")
                     .withStyle(Readout.HEADER));
-            lines.addAll(Readout.plant(plant));
+            lines.addAll(Readout.plantPanel(plant));
             panel(graphics, font, lines, MARGIN, MARGIN + panelHeight(climate) + MARGIN);
         }
     }

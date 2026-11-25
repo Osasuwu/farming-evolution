@@ -189,6 +189,80 @@ public final class BreederGogglesGameTests {
         helper.succeed();
     }
 
+    /**
+     * The line that says what the two values of a chromosome are (issue #105), as the player
+     * reads it: the same text under the seed tooltip, the plant panel and in the analyzer.
+     */
+    static final String LEGEND = "alleles: expressed | carried, one from each parent";
+
+    /**
+     * With the goggles the tooltip of a seed is its name, its genome and, last, the legend of the
+     * alleles; the words of the legend wear the colours of the expressed and the carried value.
+     */
+    @GameTest(template = "empty")
+    public static void seedTooltipWithGogglesEndsWithTheAlleleLegend(GameTestHelper helper) {
+        ItemStack seed = seedOf(flax(7, 4));
+        FakePlayer player = new FakePlayer(helper.getLevel(), PROFILE);
+        player.setItemSlot(EquipmentSlot.HEAD, goggles());
+        String name = seed.getHoverName().getString();
+
+        List<Component> lines = seed.getTooltipLines(Item.TooltipContext.of(helper.getLevel()), player, TooltipFlag.NORMAL);
+        List<String> text = strings(lines);
+        if (!text.equals(List.of(name, "species: fiber_flax | fiber_flax", "fiber_strength: 7 | 4", LEGEND))
+                && !text.equals(List.of(name, "fiber_strength: 7 | 4", "species: fiber_flax | fiber_flax", LEGEND))) {
+            throw new GameTestAssertException("Expected the name, the genome and the legend of the alleles in the tooltip"
+                    + " with goggles, got " + text);
+        }
+        expectLegendColours(lines.get(3), lines.get(text.indexOf("fiber_strength: 7 | 4")), "7", "4");
+        helper.succeed();
+    }
+
+    /**
+     * The plant panel of the HUD is the readout of the plant and, under a plant with a genome,
+     * the legend of the alleles, coloured as the species' expressed and carried allele are; a
+     * plant without a genome gets no legend.
+     */
+    @GameTest(template = "empty")
+    public static void plantPanelEndsWithTheAlleleLegend(GameTestHelper helper) {
+        Individual hybrid = new Individual(Sex.NONE, Map.of(
+                Breeding.SPECIES, new Chromosome(new Allele.Named("fiber_flax", true), new Allele.Named("wild_flax", false)),
+                "fiber_strength", new Chromosome(new Allele.Numeric(7), new Allele.Numeric(4))));
+        plant(helper, hybrid);
+        String product = new ItemStack(FarmingEvolution.PRODUCTS.of(hybrid)).getHoverName().getString();
+
+        List<Component> panel = Readout.plantPanel(plantAt(helper));
+        List<String> text = strings(panel);
+        if (!text.equals(List.of("species: fiber_flax | wild_flax", "gives " + product, "growing: stage 1 of 8", LEGEND))) {
+            throw new GameTestAssertException("Expected the species, the product, the stage and the legend of the alleles,"
+                    + " got " + text);
+        }
+        expectLegendColours(panel.get(3), panel.get(0), "fiber_flax", "wild_flax");
+
+        plantAt(helper).setGenome(null);
+        List<String> none = strings(Readout.plantPanel(plantAt(helper)));
+        if (!none.equals(List.of("no genome"))) {
+            throw new GameTestAssertException("Expected a plant without a genome shown as such, without a legend, got " + none);
+        }
+        helper.succeed();
+    }
+
+    /**
+     * The word {@code expressed} of the legend has the colour of the expressed value of the line,
+     * {@code carried} that of the carried one, and the two colours differ.
+     */
+    static void expectLegendColours(Component legend, Component line, String expressed, String carried) {
+        TextColor expressedWord = colorOf(legend, "expressed");
+        TextColor carriedWord = colorOf(legend, "carried");
+        TextColor expressedValue = colorOf(line, expressed);
+        TextColor carriedValue = colorOf(line, carried);
+        if (expressedWord == null || carriedWord == null || expressedWord.equals(carriedWord)
+                || !expressedWord.equals(expressedValue) || !carriedWord.equals(carriedValue)) {
+            throw new GameTestAssertException("Expected 'expressed' in the colour of " + expressed + " (" + expressedValue
+                    + ") and 'carried' in that of " + carried + " (" + carriedValue + "), two colours, got "
+                    + expressedWord + " and " + carriedWord + " in " + legend.getString());
+        }
+    }
+
     /** The climate the goggles show is that of the place: 30 °C, 10 % in the hot dry band, 12 °C, 50 % at the origin. */
     @GameTest(template = "empty")
     public static void climateReadoutNamesTemperatureAndHumidityOfThePlace(GameTestHelper helper) {

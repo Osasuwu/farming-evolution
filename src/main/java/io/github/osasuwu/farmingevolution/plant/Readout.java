@@ -68,12 +68,44 @@ public final class Readout {
         return lines;
     }
 
+    /**
+     * What the goggles show of the plant looked at, as its panel in the HUD has it: the lines of
+     * {@link #plant} and, under a plant with a genome, the {@link #legend} of its alleles.
+     */
+    public static List<Component> plantPanel(PlantBlockEntity plant) {
+        List<Component> lines = new ArrayList<>(plant(plant));
+        if (plant.genome().isPresent()) {
+            lines.add(legend());
+        }
+        return lines;
+    }
+
     /** The genome of a seed: every chromosome with both alleles, the expressed one first. */
     public static List<Component> genome(Individual genome) {
         List<Component> lines = new ArrayList<>();
         FarmingEvolution.BREEDING.restore(genome, replaced -> { }).genome()
                 .forEach((type, chromosome) -> lines.add(chromosome(type, chromosome)));
         return lines;
+    }
+
+    /** The genome of a seed as its tooltip shows it: the lines of {@link #genome}, then the {@link #legend}. */
+    public static List<Component> seed(Individual genome) {
+        List<Component> lines = genome(genome);
+        lines.add(legend());
+        return lines;
+    }
+
+    /**
+     * What the two values of {@code species: fiber_flax | wild_flax} or {@code fiber_strength:
+     * 7 | 4} are (issue #105): two alleles, one from each parent, the expressed one on the left.
+     * The words stand where the values stand and wear their colours: {@code expressed} in the
+     * colour of the expressed allele, {@code carried} in that of the carried one. The goggles
+     * (seed tooltip, plant panel), the seed store and the analyzer show this same line.
+     */
+    public static Component legend() {
+        return text("legend", "alleles: %s | %s, one from each parent",
+                text("expressed", "expressed").withStyle(EXPRESSED),
+                text("carried", "carried").withStyle(CARRIED)).withStyle(LABEL);
     }
 
     /** The climate of a place: temperature and humidity, one decimal each. */
