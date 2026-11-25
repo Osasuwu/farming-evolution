@@ -252,7 +252,7 @@ public final class VillageGameTests {
 
     /**
      * What must compost: a seed with a genome, wild berries, and the product of every variety
-     * and every species of pack data, named from pack data rather than from the mod's tag.
+     * and every species of pack data, named from pack data rather than from the compost data the mod builds.
      */
     private static List<ItemStack> compostable() {
         List<ItemStack> items = new ArrayList<>();
