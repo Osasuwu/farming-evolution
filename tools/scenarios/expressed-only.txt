@@ -1,0 +1,60 @@
+# Issue #121, the first hour sees only what a plant expresses: with the goggles on, the HUD shows
+# the plant under the crosshair as a line per chromosome with the expressed value alone (species
+# fiber_flax, fiber_strength 7 of a fiber_flax | wild_flax, 7 | 4 heterozygote), then product and
+# ripeness, and the climate as two numbers; the seed tooltip shows the species and the expressed
+# strength. No carried allele, no legend. In the seed store, without the goggles, two genomes that
+# differ only in what they carry (7 | 4 and 7 | 9, wild_flax and oil_flax carried) are two cells
+# whose tooltips read the same; with the goggles the genome stands in the tooltip once.
+# Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/expressed-only.txt
+command /time set day
+command /gamerule doDaylightCycle false
+command /gamerule randomTickSpeed 0
+command /clear @s
+command /setblock 4 -60 3 air
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:7,inactive:4}}}] 8
+command /give @s farmingevolution:breeder_goggles
+# One plant on farmland near the origin.
+tp 10.5 -60 8.5 0 30
+command /setblock 10 -61 10 minecraft:farmland
+slot 1
+lookat 10 -61 10
+use
+# Put the goggles on with a right click from hotbar slot 2.
+slot 2
+use
+lookat 10 -60 10
+shot expressed-hud-plant
+# Seed tooltip with the goggles on (hotbar slot 1 is inventory slot 36).
+inventory
+hover 36
+shot expressed-tooltip-goggles
+close
+# Goggles off; the second genome goes to hotbar slot 2.
+command /item replace entity @s armor.head with minecraft:air
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"oil_flax"}},fiber_strength:{active:7,inactive:9}}}] 5
+# The seed store: both genomes in by Shift-click from the hotbar (store menu slots 155, 156).
+tp 4.5 -60 0.5 0 30
+command /setblock 4 -60 3 farmingevolution:seed_store
+lookat 4 -60 3
+use
+guiscale 2
+click 155 shift
+click 156 shift
+hoverat 100 650
+shot expressed-store-two-cells
+hoverat 480 268
+shot expressed-store-cell-1-without-goggles
+hoverat 516 268
+shot expressed-store-cell-2-without-goggles
+close
+# Goggles on again: the genome in the cell tooltip stands once.
+command /give @s farmingevolution:breeder_goggles
+slot 1
+use
+lookat 4 -60 3
+use
+hoverat 480 268
+shot expressed-store-cell-1-with-goggles
+slots
+close
+guiscale 0
