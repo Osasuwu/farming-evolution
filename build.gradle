@@ -237,8 +237,8 @@ var texturesTest = tasks.register('texturesTest', Test) {
     systemProperty 'farmingevolution.textures', texturesData.asFile.absolutePath
     jvmArgumentProviders.add({ ["-Dfarmingevolution.modJar=${modJar.get().asFile.absolutePath}".toString()] } as CommandLineArgumentProvider)
     testLogging {
-        events 'failed'
-        exceptionFormat 'short'
+        events = ['failed']
+        exceptionFormat = 'short'
         showStackTraces = false
     }
 }
