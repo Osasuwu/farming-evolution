@@ -47,10 +47,18 @@ public final class WildFlaxBlock extends BushBlock {
     /** Every way of breaking gives the same: the drops are set here, not by a loot table. */
     @Override
     protected List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
+        return List.of(wildSeeds(SEEDS));
+    }
+
+    /**
+     * Seeds of the wild type of {@link #SPECIES}: what a broken plant gives, and what the
+     * creative tab of the mod holds.
+     */
+    public static ItemStack wildSeeds(int count) {
         Individual wild = FarmingEvolution.BREEDING.wild(SPECIES, Sex.NONE);
-        ItemStack seeds = new ItemStack(FarmingEvolution.SEEDS.get(), SEEDS);
+        ItemStack seeds = new ItemStack(FarmingEvolution.SEEDS.get(), count);
         seeds.set(FarmingEvolution.GENOME, wild);
-        return List.of(seeds);
+        return seeds;
     }
 
     @Override

@@ -14,5 +14,6 @@
   "item.farmingevolution.seeds": "Seeds",
   "item.farmingevolution.strong_flax": "Strong Flax Fiber",
   "item.farmingevolution.wild_berries": "Wild Berries",
-  "item.farmingevolution.wild_flax_fiber": "Wild Flax Fiber"
+  "item.farmingevolution.wild_flax_fiber": "Wild Flax Fiber",
+  "itemGroup.farmingevolution": "Farming Evolution"
 }
