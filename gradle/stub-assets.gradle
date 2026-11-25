@@ -94,6 +94,15 @@ var generateStubAssets = tasks.register('generateStubAssets') {
                                    ['b08a50', [5, 3], [6, 2], [7, 2], [8, 2], [9, 2], [10, 3], [4, 4], [11, 4], [4, 5], [11, 5],
                                     [4, 6], [11, 6], [5, 7], [10, 7], [6, 8], [7, 8], [8, 8], [9, 8], [3, 5], [12, 5], [7, 1], [8, 1]],
                                    ['5b7fd6', [6, 4], [7, 4], [8, 4], [9, 4], [6, 5], [7, 5], [8, 5], [9, 5], [6, 6], [7, 6], [8, 6], [9, 6]]],
+                // The breeder's goggles (issue #90): two round lenses in brass rims on a fibre strap.
+                breeder_goggles : [['6b5a3a'] + (0..15).collect { x -> [x, 7] },
+                                   ['b08a50'] + [1, 9].collectMany { left ->
+                                       [[left + 1, 5], [left + 2, 5], [left + 3, 5], [left + 4, 5], [left, 6], [left + 5, 6],
+                                        [left, 7], [left + 5, 7], [left, 8], [left + 5, 8], [left + 1, 9], [left + 2, 9],
+                                        [left + 3, 9], [left + 4, 9]] },
+                                   ['7fc8d6'] + [1, 9].collectMany { left ->
+                                       (left + 1..left + 4).collectMany { x -> (6..8).collect { y -> [x, y] } } },
+                                   ['d8f0f4', [3, 6], [11, 6]]],
         ]
         // The seed store (issue #30): boards with dark seams, a band of seeds across the front.
         List boards = [['9c7344'] + (0..15).collectMany { x -> (0..15).collect { y -> [x, y] } },

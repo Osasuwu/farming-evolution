@@ -202,6 +202,17 @@ final class ControlActions {
                     aim(mc, target.aimFrom(mc));
                 }), shot, Extra.NONE, false, true);
             }
+            case "guiscale" -> {
+                int scale = (int) number(args, 0, "gui scale");
+                count(args, 1);
+                if (scale < 0) {
+                    throw new ActionException("guiscale takes 0 (auto) or a positive scale");
+                }
+                yield new Action(line, once(mc -> {
+                    mc.options.guiScale().set(scale);
+                    mc.resizeDisplay();
+                }), shot, Extra.NONE, false, true);
+            }
             case "tp" -> {
                 if (args.length != 3 && args.length != 5) {
                     throw new ActionException("tp takes x y z [yaw pitch]");

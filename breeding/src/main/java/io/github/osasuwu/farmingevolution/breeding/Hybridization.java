@@ -14,9 +14,13 @@ public record Hybridization(String firstParent, String secondParent, String resu
 
     /** Whether a pair with these active species, in either order, qualifies in this environment. */
     public boolean applies(String species, String otherSpecies, Environment environment) {
-        boolean parents = (species.equals(firstParent) && otherSpecies.equals(secondParent))
+        return parents(species, otherSpecies) && condition.holds(environment);
+    }
+
+    /** Whether these are the two parent species of the hybridization, in either order, wherever it holds. */
+    public boolean parents(String species, String otherSpecies) {
+        return (species.equals(firstParent) && otherSpecies.equals(secondParent))
                 || (species.equals(secondParent) && otherSpecies.equals(firstParent));
-        return parents && condition.holds(environment);
     }
 
     /**
