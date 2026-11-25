@@ -42,8 +42,8 @@ final class Analysis {
     }
 
     /**
-     * Both alleles of every chromosome of an individual, the expressed one first, and the
-     * product it gives when it is a ripe plant.
+     * Both alleles of every chromosome of an individual, the expressed one first, the legend of
+     * the alleles ({@link Readout#legend}) and the product it gives when it is a ripe plant.
      *
      * @param what "plant" or "seed"
      */
@@ -54,6 +54,8 @@ final class Analysis {
         individual.genome().forEach((type, chromosome) -> lines.add(text("chromosome", "  %s: %s | %s",
                 Readout.chromosomeName(type), Readout.allele(chromosome.active(), true),
                 Readout.allele(chromosome.inactive(), false)).withStyle(Readout.LABEL)));
+        // The same legend as under the goggles' readouts (issue #105).
+        lines.add(Component.literal("  ").append(Readout.legend()));
         lines.add(text("product", "  gives %s", Readout.product(individual)).withStyle(Readout.LABEL));
         return lines;
     }

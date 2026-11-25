@@ -60,6 +60,6 @@ public final class BreederGogglesItem extends Item implements Equipable {
             return;
         }
         List<Component> tooltip = event.getToolTip();
-        tooltip.addAll(Math.min(1, tooltip.size()), Readout.genome(genome));
+        tooltip.addAll(Math.min(1, tooltip.size()), Readout.seed(genome));
     }
 }

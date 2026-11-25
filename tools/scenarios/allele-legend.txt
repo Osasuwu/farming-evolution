@@ -1,0 +1,38 @@
+# Issue #105, the legend of the alleles: with the goggles on, the seed tooltip and the plant
+# panel of the HUD end with "alleles: expressed | carried, one from each parent", the words in
+# the colours of the expressed and the carried allele; the analyzer shows the same line.
+# Without the goggles the seed tooltip is the name alone.
+# Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/allele-legend.txt
+command /time set day
+command /gamerule doDaylightCycle false
+command /gamerule randomTickSpeed 0
+command /clear @s
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:7,inactive:4}}}] 8
+command /give @s farmingevolution:analyzer
+command /give @s farmingevolution:breeder_goggles
+# Without the goggles: the seed tooltip is the name alone (hotbar slot 1 is inventory slot 36).
+inventory
+hover 36
+shot legend-tooltip-without
+close
+# One plant on farmland near the origin.
+tp 10.5 -60 8.5 0 30
+command /setblock 10 -61 10 minecraft:farmland
+slot 1
+lookat 10 -61 10
+use
+# Put the goggles on with a right click from hotbar slot 3.
+slot 3
+use
+lookat 10 -60 10
+shot legend-hud-plant
+inventory
+hover 36
+shot legend-tooltip-with
+close
+# The analyzer on the same plant: the same legend under the alleles of the plant.
+slot 2
+lookat 10 -60 10
+use
+shot legend-analyzer
+read 20
