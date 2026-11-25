@@ -11,6 +11,9 @@ import io.github.osasuwu.farmingevolution.breeding.PackData;
 import io.github.osasuwu.farmingevolution.breeding.PackDataException;
 import io.github.osasuwu.farmingevolution.climate.ClimateSource;
 import io.github.osasuwu.farmingevolution.climate.GradientClimate;
+import io.github.osasuwu.farmingevolution.food.SeedItem;
+import io.github.osasuwu.farmingevolution.food.WildBerriesItem;
+import io.github.osasuwu.farmingevolution.food.WildFoodLoad;
 import io.github.osasuwu.farmingevolution.plant.AnalyzerItem;
 import io.github.osasuwu.farmingevolution.plant.BreederGogglesItem;
 import io.github.osasuwu.farmingevolution.plant.GenomeCodec;
@@ -41,9 +44,7 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemNameBlockItem;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -136,10 +137,10 @@ public final class FarmingEvolution {
 
     /**
      * The seed: the item of the crop block, so placing it plants the crop. It is also food,
-     * the slice's food of the same line (CONCEPT.md, "Вертикальный срез").
+     * the slice's wild food of the same line (CONCEPT.md, "Еда в срезе"); see {@link SeedItem}.
      */
-    public static final DeferredItem<ItemNameBlockItem> SEEDS = ITEMS.register("seeds", () -> new ItemNameBlockItem(
-            CROP.get(), new Item.Properties().food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.1F).build())));
+    public static final DeferredItem<SeedItem> SEEDS = ITEMS.register("seeds",
+            () -> new SeedItem(CROP.get(), new Item.Properties()));
 
     /** The wild source of the flax line, found in the world; see {@link WildFlaxBlock}. */
     public static final DeferredBlock<WildFlaxBlock> WILD_FLAX = BLOCKS.register("wild_flax", () -> new WildFlaxBlock(
@@ -162,8 +163,9 @@ public final class FarmingEvolution {
                     .sound(SoundType.SWEET_BERRY_BUSH)
                     .pushReaction(PushReaction.DESTROY)));
 
-    public static final DeferredItem<Item> WILD_BERRIES = ITEMS.registerSimpleItem("wild_berries",
-            new Item.Properties().food(new FoodProperties.Builder().nutrition(2).saturationModifier(0.1F).build()));
+    /** Wild food from {@link #WILD_BERRY_BUSH}; see {@link WildBerriesItem}. */
+    public static final DeferredItem<WildBerriesItem> WILD_BERRIES = ITEMS.register("wild_berries",
+            () -> new WildBerriesItem(new Item.Properties()));
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<PlantBlockEntity>> PLANT_BLOCK_ENTITY =
             BLOCK_ENTITIES.register("plant", () -> BlockEntityType.Builder.of(PlantBlockEntity::new, CROP.get()).build(null));
@@ -171,6 +173,11 @@ public final class FarmingEvolution {
     /** Per level and not saved: what {@link PlantBlock} hands from a removed plant to its replacement. */
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<RemovedPlants>> REMOVED_PLANTS =
             ATTACHMENTS.register("removed_plants", () -> AttachmentType.builder(RemovedPlants::new).build());
+
+    /** Per player and saved with it, not copied on death: how much wild food it ate lately. */
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<WildFoodLoad>> WILD_FOOD_LOAD =
+            ATTACHMENTS.register("wild_food_load",
+                    () -> AttachmentType.builder(() -> WildFoodLoad.NONE).serialize(WildFoodLoad.CODEC).build());
 
     /**
      * The chance of a seed or a wild berry to raise the composter's level: that of wheat seeds

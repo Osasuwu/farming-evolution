@@ -70,10 +70,10 @@ JEI (со своей библиотекой MezzConfig, лицензия MIT) е
 
 ```
 Breeding simulation (<путь>/checks/breeding-simulation.json):
-  variety strong_fiber, method selection: median 10 generations (50 min), worst 32 generations (160 min); 1000 of 1000 lines reached the thresholds within 40 generations
-  variety strong_fiber, method crossing: median 8 generations (40 min), worst 14 generations (70 min); 1000 of 1000 lines reached the thresholds within 40 generations
-  requirement strong_fiber, method selection: variety strong_fiber, median 10 generations (50 min), worst 32 generations (160 min)
-  requirement strong_fiber, method crossing: variety strong_fiber, median 8 generations (40 min), worst 14 generations (70 min)
+  variety strong_fiber, method selection: median 10 generations (90 min), worst 32 generations (288 min); 1000 of 1000 lines reached the thresholds within 40 generations
+  variety strong_fiber, method crossing: median 8 generations (72 min), worst 14 generations (126 min); 1000 of 1000 lines reached the thresholds within 40 generations
+  requirement strong_fiber, method selection: variety strong_fiber, median 10 generations (90 min), worst 32 generations (288 min)
+  requirement strong_fiber, method crossing: variety strong_fiber, median 8 generations (72 min), worst 14 generations (126 min)
 Gaps between varieties:
   species flax: no variety for fiber_strength 1..6
 ```

@@ -1,0 +1,76 @@
+# Issue #89: wild food loads the player. A seed restores 1 food point (half a hunger icon);
+# the 4th seed in a row gives Hunger, the 6th adds Nausea; berries load half as much, so the
+# 8th berry in a row gives Hunger. Death resets the load. The effects and the load are shown
+# by /data in the chat (read), the food level by state.
+# Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/wild-food.txt
+command /time set day
+command /gamerule doDaylightCycle false
+command /gamerule doImmediateRespawn true
+# On peaceful hunger refills by itself, so the food level would not show the eating.
+command /difficulty easy
+command /clear @s
+# Looking at the sky: a seed in the hand eats instead of trying to plant.
+tp 0.5 -60 0.5 0 -90
+# Strong Hunger drains all the saturation and the food level to 0 (about 50 points in 20 s).
+command /effect give @s minecraft:hunger 20 100
+wait 410
+command /effect clear @s
+command /give @s farmingevolution:seeds 6
+slot 1
+state
+# Eating takes 32 ticks; the button is held for 40. One seed: food +1, no effect.
+use hold 40
+state
+command /data get entity @s active_effects
+command /data get entity @s neoforge:attachments
+read 2
+use hold 40
+use hold 40
+command /data get entity @s active_effects
+read 1
+# The 4th seed in a row: Hunger for 30 s.
+use hold 40
+shot seed-4-hunger
+state
+command /data get entity @s active_effects
+command /data get entity @s neoforge:attachments
+read 2
+use hold 40
+# The 6th seed: Nausea as well.
+use hold 40
+shot seed-6-nausea
+command /data get entity @s active_effects
+read 1
+# Death resets the load.
+command /kill @s
+wait 40
+tp 0.5 -60 0.5 0 -90
+command /data get entity @s neoforge:attachments
+read 1
+command /effect give @s minecraft:hunger 20 100
+wait 410
+command /effect clear @s
+command /clear @s
+command /give @s farmingevolution:wild_berries 8
+slot 1
+state
+use hold 40
+use hold 40
+use hold 40
+use hold 40
+use hold 40
+use hold 40
+use hold 40
+# Seven berries in a row: no effect yet.
+shot berry-7-none
+state
+command /data get entity @s active_effects
+command /data get entity @s neoforge:attachments
+read 2
+# The 8th berry: Hunger.
+use hold 40
+shot berry-8-hunger
+state
+command /data get entity @s active_effects
+read 1
+command /difficulty peaceful
