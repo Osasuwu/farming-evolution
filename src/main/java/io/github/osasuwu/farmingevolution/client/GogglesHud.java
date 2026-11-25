@@ -23,28 +23,24 @@ import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 
 /**
  * The HUD of the breeder's goggles (issue #90). While the player wears them it shows two
- * panels: the climate of the player's place in the top left corner, and the plant of the mod
- * the player looks at to the right of the crosshair. The lines are {@link Readout}'s; this
- * class only places them. Client only: the dedicated server never loads it.
+ * panels in the top left corner: the climate of the player's place and, under it, the plant of
+ * the mod the player looks at. The lines are {@link Readout}'s; this class only places them.
+ * Client only: the dedicated server never loads it.
  *
- * <p>The plant panel stays inside the screen and above the hotbar, the hearts and the
- * experience bar at every GUI scale; the climate panel is in a corner nothing of the vanilla
- * HUD uses while the debug screen is closed, and both hide with the debug screen and F1.
+ * <p>Both panels together are at most 9 lines, about 90 pixels of the GUI. The GUI is at least
+ * 240 pixels high at every scale, and the chat, closed, reaches up at most 130 pixels from the
+ * bottom (40 for the hotbar, 90 for ten lines), so the panels touch neither the chat nor the
+ * hotbar. They hide with the debug screen, with F1 and under any open screen.
  */
 @EventBusSubscriber(modid = FarmingEvolution.MOD_ID, value = Dist.CLIENT)
 public final class GogglesHud {
     private static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(FarmingEvolution.MOD_ID, "breeder_goggles");
 
-    /** The height the hotbar, the hearts, the food and the experience bar take at the bottom. */
-    private static final int BOTTOM_RESERVED = 40;
-
-    /** The distance of the plant panel from the crosshair. */
-    private static final int CROSSHAIR_GAP = 12;
-
     private static final int MARGIN = 4;
     private static final int PADDING = 3;
     private static final int LINE_HEIGHT = 10;
-    private static final int BACKGROUND = 0x90000000;
+    /** Dark enough that the grey labels read against the sky. */
+    private static final int BACKGROUND = 0xC0000000;
     private static final int TEXT = 0xFFFFFFFF;
 
     private GogglesHud() {
@@ -59,13 +55,12 @@ public final class GogglesHud {
         Minecraft minecraft = Minecraft.getInstance();
         Player player = minecraft.player;
         // A layer of a mod is drawn even with the HUD hidden (F1); the vanilla ones are not.
-        if (player == null || minecraft.level == null || minecraft.options.hideGui
+        // An open screen (inventory, chat) covers the world, and the readout of the world with it.
+        if (player == null || minecraft.level == null || minecraft.options.hideGui || minecraft.screen != null
                 || minecraft.getDebugOverlay().showDebugScreen() || !BreederGogglesItem.worn(player)) {
             return;
         }
         Font font = minecraft.font;
-        int width = graphics.guiWidth();
-        int height = graphics.guiHeight();
 
         List<Component> climate = new ArrayList<>();
         climate.add(Component.translatableWithFallback("goggles." + FarmingEvolution.MOD_ID + ".climate_header", "Climate here")
@@ -80,11 +75,7 @@ public final class GogglesHud {
             lines.add(Component.translatableWithFallback("goggles." + FarmingEvolution.MOD_ID + ".plant_header", "Plant")
                     .withStyle(Readout.HEADER));
             lines.addAll(Readout.plant(plant));
-            int panelWidth = panelWidth(font, lines);
-            int panelHeight = panelHeight(lines);
-            int x = Math.max(MARGIN, Math.min(width / 2 + CROSSHAIR_GAP, width - MARGIN - panelWidth));
-            int y = Math.max(MARGIN, Math.min(height / 2 - panelHeight / 2, height - BOTTOM_RESERVED - panelHeight));
-            panel(graphics, font, lines, x, y);
+            panel(graphics, font, lines, MARGIN, MARGIN + panelHeight(climate) + MARGIN);
         }
     }
 

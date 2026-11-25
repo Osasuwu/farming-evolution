@@ -1,0 +1,77 @@
+# Issue #90, breeder's goggles: with the goggles on the head the HUD shows the plant under
+# the crosshair (species, product, ripeness) and the climate of the place, and the seed tooltip
+# shows the genome; without them neither. The analyzer says in words whether the climate
+# hybridization of the pair acts here: near the origin (12 °C, 50 %) fiber_flax × fiber_flax
+# gives no oil_flax, in the warm dry place (-1500, 2000: 30 °C, 10 %) it can.
+# Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/breeder-goggles.txt
+command /time set day
+command /gamerule doDaylightCycle false
+command /gamerule randomTickSpeed 0
+command /clear @s
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:7,inactive:4}}}] 8
+command /give @s farmingevolution:analyzer
+command /give @s farmingevolution:breeder_goggles
+# Near the origin: one plant on farmland.
+tp 10.5 -60 8.5 0 30
+command /setblock 10 -61 10 minecraft:farmland
+slot 1
+lookat 10 -61 10
+use
+lookat 10 -60 10
+shot goggles-hud-plant-without
+# Put the goggles on with a right click from hotbar slot 3.
+slot 3
+use
+lookat 10 -60 10
+shot goggles-hud-plant-origin
+# Seed tooltip with the goggles on (hotbar slot 1 is inventory slot 36).
+inventory
+hover 36
+shot goggles-tooltip-with
+close
+# The analyzer near the origin: no oil_flax here. The goggles left hotbar slot 3, so these
+# seeds go there.
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:5,inactive:5}}}] 4
+command /setblock 12 -61 10 minecraft:farmland
+slot 3
+lookat 12 -61 10
+use
+slot 2
+lookat 12 -60 10
+use
+shot goggles-analyzer-origin
+read 20
+# The warm dry place: climate in the HUD and the analyzer on a fiber_flax pair.
+tp -1500.5 -60 1998.5 0 30
+# Let the client load the chunks there, or the seed is used on nothing.
+wait 60
+command /setblock -1500 -61 2000 minecraft:farmland
+wait 10
+slot 3
+lookat -1500 -61 2000
+use
+slot 2
+lookat -1500 -60 2000
+use
+shot goggles-analyzer-warm-dry
+read 20
+command /gamerule randomTickSpeed 3000
+wait 200
+command /gamerule randomTickSpeed 0
+command /clear @s farmingevolution:analyzer
+slot 2
+lookat -1500 -60 2000
+shot goggles-hud-warm-dry-ripe
+guiscale 2
+shot goggles-hud-guiscale-2
+guiscale 3
+shot goggles-hud-guiscale-3
+guiscale 0
+# Take the goggles off: the HUD and the genome in the tooltip go.
+command /item replace entity @s armor.head with minecraft:air
+lookat -1500 -60 2000
+shot goggles-hud-warm-dry-without
+inventory
+hover 36
+shot goggles-tooltip-without
+close
