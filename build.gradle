@@ -305,6 +305,42 @@ tasks.named('verify') { dependsOn ':checks:simulateBreeding' }
 var recipeGraphDump = layout.projectDirectory.file('run/gametest/recipe-graph-dump.json')
 // A dump of an earlier run must not stand in for one this run did not write.
 tasks.named('runGameTestServer') { doFirst { recipeGraphDump.asFile.delete() } }
+
+// ---------------------------------------------------------------------------
+// The place of the GameTest grid (issue #82). The game puts the grid of all GameTests at a
+// random point of the world, so every run went in a random climate of the climate stub. A
+// dev-only mod of the GameTest run alone puts the grid at the origin of the world instead
+// (GameTestGridGameTests.GRID_ORIGIN; the mixin is in source set gametestGrid). Gradle puts
+// its jar into run/gametest/mods only: the mod jar never carries it, and no other run gets it.
+// ---------------------------------------------------------------------------
+
+sourceSets {
+    gametestGrid
+}
+neoForge.addModdingDependenciesTo(sourceSets.gametestGrid)
+dependencies {
+    // The place of the grid is a constant of its GameTest, in the mod.
+    gametestGridImplementation sourceSets.main.output
+}
+
+var gametestGridJar = tasks.register('gametestGridJar', Jar) {
+    description = 'The dev-only mod of the GameTest run that pins the place of the GameTest grid.'
+    from sourceSets.gametestGrid.output
+    archiveFileName = "${mod_id}-gametest-grid.jar"
+    destinationDirectory = layout.buildDirectory.dir('gametestGrid')
+}
+
+var installGameTestGridMod = tasks.register('installGameTestGridMod', Sync) {
+    from gametestGridJar
+    into layout.projectDirectory.dir('run/gametest/mods')
+}
+
+tasks.named('runGameTestServer') {
+    dependsOn installGameTestGridMod
+    // At a fixed place, the blocks and entities an earlier run left there would meet the tests
+    // of this run: every run starts in a new world, as it does in CI.
+    doFirst { project.delete(layout.projectDirectory.dir('run/gametest/world')) }
+}
 var checkRecipeGraph = tasks.register('checkRecipeGraph', JavaExec) {
     group = 'verification'
     description = 'Fails when an input of a required recipe cannot be made from the starting resources.'

@@ -1,0 +1,24 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="LGPL-3.0-or-later"
+
+# Dev-only: gradlew runGameTestServer puts this jar into the mods folder of its own game
+# directory, run/gametest (build.gradle). It is never part of the mod a player installs, and
+# no other run gets it. Its one mixin changes GameTestServer, the server of the GameTest run.
+[[mods]]
+modId="farmingevolution_gametest_grid"
+version="0"
+displayName="Farming Evolution GameTest grid"
+description='''
+Puts the grid of the GameTests at a fixed place, in a known climate (issue #82).
+'''
+
+[[mixins]]
+config="farmingevolution_gametest_grid.mixins.json"
+
+[[dependencies.farmingevolution_gametest_grid]]
+    modId="farmingevolution"
+    type="required"
+    versionRange="[0,)"
+    ordering="AFTER"
+    side="BOTH"
