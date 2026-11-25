@@ -1,0 +1,93 @@
+# Issue #88: the composter takes the mod's seeds, wild berries and products, by hand and from a
+# hopper; a novice farmer trades bone meal; a working farmer leaves ripe plants of the mod alone.
+# Every check prints a chat line with "say" only when it holds; "read" shows them.
+# Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/farmer-compost.txt
+command /time set 3000
+command /gamerule doDaylightCycle false
+command /clear @s
+command /kill @e[type=item]
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:7,inactive:4}}}] 16
+command /give @s farmingevolution:wild_berries 4
+command /give @s farmingevolution:wild_flax_fiber 4
+# Composter by hand: seeds (slot 1), wild berries (slot 2), a product (slot 3), each into an empty composter.
+tp -2.5 -60 -0.5 180 30
+command /setblock -2 -60 -3 minecraft:composter
+slot 1
+lookat -2 -60 -3
+use
+command /execute if block -2 -60 -3 minecraft:composter[level=1] run say composter: seeds raised it to level 1
+shot compost-seeds
+command /setblock -2 -60 -3 minecraft:composter
+slot 2
+lookat -2 -60 -3
+use
+command /execute if block -2 -60 -3 minecraft:composter[level=1] run say composter: wild berries raised it to level 1
+command /setblock -2 -60 -3 minecraft:composter
+slot 3
+lookat -2 -60 -3
+use
+command /execute if block -2 -60 -3 minecraft:composter[level=1] run say composter: wild flax fiber raised it to level 1
+shot compost-fiber
+# Composter fed by a hopper: 2 fibre and 2 seeds go in (too few to fill it) and the hopper ends empty.
+command /setblock -4 -59 -3 minecraft:air
+command /setblock -4 -60 -3 minecraft:composter
+command /setblock -4 -59 -3 minecraft:hopper[facing=down]{Items:[{Slot:0b,id:"farmingevolution:wild_flax_fiber",count:2},{Slot:1b,id:"farmingevolution:seeds",count:2}]}
+wait 200
+command /execute unless block -4 -60 -3 minecraft:composter[level=0] if data block -4 -59 -3 {Items:[]} run say hopper: the composter took every item and is above level 0
+shot compost-hopper
+read 10
+# A novice farmer that stands still: its trades.
+command /summon minecraft:villager 0.5 -60 -4.5 {NoAI:1b,Rotation:[0f,0f],VillagerData:{profession:"minecraft:farmer",level:1,type:"minecraft:plains"}}
+tp 0.5 -60 -1.5 180 10
+lookat 0.5 -58.6 -4.5
+use
+wait 20
+shot farmer-trades
+slots
+close
+# A working farmer: a field of ripe wild flax with a composter, the farmer's job site, behind a fence two
+# blocks high (a villager on the composter jumps a one-block fence).
+command /fill 1 -61 2 9 -57 11 minecraft:air
+command /fill 1 -61 2 9 -61 11 minecraft:grass_block
+command /fill 2 -60 3 8 -59 10 minecraft:oak_fence
+command /fill 3 -60 4 7 -59 9 minecraft:air
+command /fill 4 -61 6 6 -61 8 minecraft:farmland[moisture=7]
+command /setblock 5 -60 4 minecraft:composter
+command /kill @e[type=minecraft:villager]
+command /kill @e[type=minecraft:item]
+tp 5.5 -60 5.5 0 60
+# The far row first, so that a planted plant does not stand between the eyes and the farmland.
+slot 1
+lookat 4 -61 8
+use
+lookat 5 -61 8
+use
+lookat 6 -61 8
+use
+lookat 4 -61 7
+use
+lookat 5 -61 7
+use
+lookat 6 -61 7
+use
+lookat 4 -61 6
+use
+lookat 5 -61 6
+use
+lookat 6 -61 6
+use
+command /gamerule randomTickSpeed 3000
+wait 600
+command /gamerule randomTickSpeed 3
+command /execute if block 4 -60 6 farmingevolution:crop[age=7] if block 5 -60 6 farmingevolution:crop[age=7] if block 6 -60 6 farmingevolution:crop[age=7] if block 4 -60 7 farmingevolution:crop[age=7] if block 5 -60 7 farmingevolution:crop[age=7] if block 6 -60 7 farmingevolution:crop[age=7] if block 4 -60 8 farmingevolution:crop[age=7] if block 5 -60 8 farmingevolution:crop[age=7] if block 6 -60 8 farmingevolution:crop[age=7] run say field: all nine plants ripe before the farmer
+tp 5.5 -60 0.5 0 25
+command /summon minecraft:villager 5.5 -60 7.5
+wait 600
+command /execute as @e[type=minecraft:villager,x=5.5,y=-60,z=7.5,distance=..6] if data entity @s {VillagerData:{profession:"minecraft:farmer"}} if data entity @s Brain.memories."minecraft:job_site" run say field: I am a farmer with the composter as job site
+shot farmer-at-work
+wait 1200
+command /execute if block 4 -60 6 farmingevolution:crop[age=7] if block 5 -60 6 farmingevolution:crop[age=7] if block 6 -60 6 farmingevolution:crop[age=7] if block 4 -60 7 farmingevolution:crop[age=7] if block 5 -60 7 farmingevolution:crop[age=7] if block 6 -60 7 farmingevolution:crop[age=7] if block 4 -60 8 farmingevolution:crop[age=7] if block 5 -60 8 farmingevolution:crop[age=7] if block 6 -60 8 farmingevolution:crop[age=7] run say field: all nine plants still ripe after the farmer worked
+command /execute as @e[type=minecraft:villager,x=5.5,y=-60,z=7.5,distance=..6] if data entity @s {VillagerData:{profession:"minecraft:farmer"}} if data entity @s Brain.memories."minecraft:job_site" run say field: still a farmer with the composter as job site
+drops 12
+shot farmer-field-after
+read 10
