@@ -2,6 +2,8 @@
 # panel of the HUD end with "alleles: expressed | carried, one from each parent", the words in
 # the colours of the expressed and the carried allele; the analyzer shows the same line.
 # Without the goggles the seed tooltip is the name alone.
+# History: valid until #104 (slice 1); after it the goggles show only the expressed value, and the
+# legend of two alleles goes or is rewritten for one value.
 # Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/allele-legend.txt
 command /time set day
 command /gamerule doDaylightCycle false
