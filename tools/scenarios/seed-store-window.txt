@@ -1,0 +1,190 @@
+# Seed store window with 42 genomes (#91): the frames of the PR. Places a store, fills it by
+# Shift-click from the inventory, then shows each filter and sort, the condition, the seed
+# tooltip, taking and putting by hand, GUI scale 2 and 3. Pixel points assume the 1280x720
+# frame; the store window is 194x222 GUI pixels, centred.
+# Run with gradlew runControl started:
+# java tools/ClientControl.java --scenario tools/scenarios/seed-store-window.txt
+command /time set day
+command /gamerule doDaylightCycle false
+command /clear @s
+command /setblock 4 -60 3 air
+command /kill @e[type=item]
+tp 4.5 -60 0.5 0 30
+command /give @s farmingevolution:seed_store
+slot 1
+lookat 4 -61 3
+use
+lookat 4 -60 3
+use
+guiscale 2
+shot setup-empty-window
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:1,inactive:1}}}] 1
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:2,inactive:2}}}] 14
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:3,inactive:3}}}] 27
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:4,inactive:4}}}] 40
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:5,inactive:5}}}] 53
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:6,inactive:6}}}] 6
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:7,inactive:7}}}] 19
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:8,inactive:8}}}] 32
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:9,inactive:9}}}] 45
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:10,inactive:10}}}] 58
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:1,inactive:1}}}] 11
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:2,inactive:2}}}] 24
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:3,inactive:3}}}] 37
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:4,inactive:4}}}] 50
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:5,inactive:5}}}] 3
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:6,inactive:6}}}] 16
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:7,inactive:7}}}] 29
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:8,inactive:8}}}] 42
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:9,inactive:9}}}] 55
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:10,inactive:10}}}] 8
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"oil_flax"},inactive:{id:"oil_flax"}},fiber_strength:{active:1,inactive:1}}}] 21
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"oil_flax"},inactive:{id:"oil_flax"}},fiber_strength:{active:2,inactive:2}}}] 34
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"oil_flax"},inactive:{id:"oil_flax"}},fiber_strength:{active:3,inactive:3}}}] 47
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"oil_flax"},inactive:{id:"oil_flax"}},fiber_strength:{active:4,inactive:4}}}] 60
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"oil_flax"},inactive:{id:"oil_flax"}},fiber_strength:{active:5,inactive:5}}}] 13
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"oil_flax"},inactive:{id:"oil_flax"}},fiber_strength:{active:6,inactive:6}}}] 26
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"oil_flax"},inactive:{id:"oil_flax"}},fiber_strength:{active:7,inactive:7}}}] 39
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"oil_flax"},inactive:{id:"oil_flax"}},fiber_strength:{active:8,inactive:8}}}] 52
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"oil_flax"},inactive:{id:"oil_flax"}},fiber_strength:{active:9,inactive:9}}}] 5
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"oil_flax"},inactive:{id:"oil_flax"}},fiber_strength:{active:10,inactive:10}}}] 18
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:8,inactive:3}}}] 31
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:9,inactive:2}}}] 44
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"oil_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:5,inactive:7}}}] 57
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"oil_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:6,inactive:9}}}] 10
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"oil_flax"}},fiber_strength:{active:3,inactive:10}}}] 23
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"oil_flax"}},fiber_strength:{active:7,inactive:1}}}] 36
+shot setup-inventory-full
+click 128 shift
+click 129 shift
+click 130 shift
+click 131 shift
+click 132 shift
+click 133 shift
+click 134 shift
+click 135 shift
+click 136 shift
+click 137 shift
+click 138 shift
+click 139 shift
+click 140 shift
+click 141 shift
+click 142 shift
+click 143 shift
+click 144 shift
+click 145 shift
+click 146 shift
+click 147 shift
+click 148 shift
+click 149 shift
+click 150 shift
+click 151 shift
+click 152 shift
+click 153 shift
+click 154 shift
+click 155 shift
+click 156 shift
+click 157 shift
+click 158 shift
+click 159 shift
+click 160 shift
+click 161 shift
+click 162 shift
+click 163 shift
+shot setup-store-36
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"oil_flax"}},fiber_strength:{active:10,inactive:4}}}] 12
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"oil_flax"}},fiber_strength:{active:2,inactive:8}}}] 9
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"oil_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:8,inactive:8}}}] 30
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:6,inactive:2}}}] 44
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"oil_flax"},inactive:{id:"oil_flax"}},fiber_strength:{active:4,inactive:9}}}] 18
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:10,inactive:1}}}] 3
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:9,inactive:9}}}] 64
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:9,inactive:9}}}] 64
+click 155 shift
+click 156 shift
+click 157 shift
+click 158 shift
+click 159 shift
+click 160 shift
+click 161 shift
+click 162 shift
+hoverat 100 650
+shot 01-window-42-genomes
+scrollat 624 322 -1
+shot 02-scrolled-down
+scrollat 624 322 5
+clickat 480 226
+hoverat 100 650
+shot 03-filter-species-fiber-flax
+clickat 480 226 right
+clickat 516 226
+scrollat 588 226 6
+hoverat 100 650
+shot 04-filter-strength-at-least-7
+clickat 552 226
+hoverat 100 650
+shot 05-filter-strength-exactly-7
+clickat 552 226
+hoverat 100 650
+shot 06-filter-strength-at-most-7
+clickat 480 226
+hoverat 100 650
+shot 07-filter-fiber-flax-and-at-most-7
+hoverat 552 226
+shot 08-compare-button-tooltip
+clickat 800 226
+clickat 660 226
+clickat 696 226
+hoverat 100 650
+shot 09-sort-count-descending
+clickat 660 226
+hoverat 100 650
+shot 10-sort-strength-descending
+clickat 696 226
+hoverat 100 650
+shot 11-sort-strength-ascending
+clickat 480 226
+hoverat 100 650
+shot 12-sort-strength-with-species-filter
+clickat 800 226
+hoverat 100 650
+shot 13-reset
+clickat 806 188
+hoverat 100 650
+shot 14-condition-variety
+clickat 806 188
+clickat 806 188
+clickat 806 188
+clickat 806 188
+clickat 806 188
+clickat 806 188
+clickat 806 188
+hoverat 100 650
+shot 15-condition-strength-7
+hoverat 646 188
+shot 16-condition-tooltip
+hoverat 480 268
+shot 17-seed-tooltip-scale2
+clickat 480 268
+shot 18-stack-taken-to-cursor
+clickat 624 322
+hoverat 100 650
+shot 19-stack-put-back
+clickat 516 268 right
+shot 20-half-taken
+clickat 624 322 right
+shot 21-one-put-back
+clickat 624 322
+hoverat 100 650
+guiscale 3
+hoverat 50 700
+shot 22-window-scale3
+hoverat 507 276
+shot 23-seed-tooltip-scale3
+hoverat 669 159
+shot 24-sort-button-tooltip-scale3
+scrollat 615 303 -1
+hoverat 50 700
+shot 25-scrolled-scale3
+guiscale 2
+slots

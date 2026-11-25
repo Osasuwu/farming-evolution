@@ -115,6 +115,33 @@ var generateStubAssets = tasks.register('generateStubAssets') {
                 end: 'farmingevolution:block/seed_store_top', side: 'farmingevolution:block/seed_store_side']])
         json('models/item/seed_store.json', [parent: 'farmingevolution:block/seed_store'])
 
+        // The icons of the seed store's window (issue #91), sprites of the gui atlas: a glyph of
+        // '#' cells, one colour, centred in 16x16. The window draws the buttons under them itself.
+        def glyph = { String name, String colour, List<String> rows ->
+            int top = (16 - rows.size()).intdiv(2)
+            int left = (16 - rows*.length().max()).intdiv(2)
+            List points = []
+            rows.eachWithIndex { String row, int y ->
+                row.toList().eachWithIndex { String cell, int x -> if (cell == '#') points << [left + x, top + y] }
+            }
+            png("gui/sprites/seed_store/${name}", [[colour] + points])
+        }
+        String ink = '303030'
+        glyph('previous', ink, ['...#', '..##', '.###', '####', '.###', '..##', '...#'])
+        glyph('next', ink, ['#...', '##..', '###.', '####', '###.', '##..', '#...'])
+        glyph('ascending', ink, ['...#...', '..###..', '.#####.', '#######', '..###..', '..###..', '..###..'])
+        glyph('descending', ink, ['..###..', '..###..', '..###..', '#######', '.#####.', '..###..', '...#...'])
+        // Species: seeds of the seed item, larger.
+        glyph('species', '7a5230', ['.##....##.', '.##....##.', '..........', '...##.....', '...##..##.',
+                                    '.......##.', '##........', '##...##...', '.....##...'])
+        // Trait: bars rising to the right.
+        glyph('trait', '4f8a2b', (0..11).collect { y -> (0..10).collect { x -> x % 3 != 2 && y >= 12 - 3 * (x.intdiv(3) + 1) ? '#' : '.' }.join() })
+        glyph('count', ink, ['..#..#..', '..#..#..', '########', '..#..#..', '..#..#..', '########', '..#..#..', '..#..#..'])
+        glyph('at_least', ink, ['##.....', '..##...', '....##.', '..##...', '##.....', '.......', '#######'])
+        glyph('exactly', ink, ['#######', '.......', '.......', '#######'])
+        glyph('at_most', ink, ['.....##', '...##..', '.##....', '...##..', '.....##', '.......', '#######'])
+        glyph('reset', '8e1f3c', ['#.....#', '.#...#.', '..#.#..', '...#...', '..#.#..', '.#...#.', '#.....#'])
+
         items.each { name, strokes ->
             png("item/${name}", strokes)
             json("models/item/${name}.json", [parent: 'minecraft:item/generated', textures: [layer0: "farmingevolution:item/${name}"]])

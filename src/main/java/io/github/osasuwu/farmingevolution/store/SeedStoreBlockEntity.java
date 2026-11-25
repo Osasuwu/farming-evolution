@@ -60,6 +60,21 @@ public final class SeedStoreBlockEntity extends BlockEntity {
         return selection;
     }
 
+    /** Every condition a store may have, in the order the window steps through them. */
+    public static List<Selection> selections() {
+        return SELECTIONS;
+    }
+
+    /** Sets the condition: the window's buttons do it (issue #91). */
+    public void select(Selection selection) {
+        if (!SELECTIONS.contains(selection)) {
+            throw new IllegalArgumentException("not a condition of the store: " + selection);
+        }
+        this.selection = selection;
+        storage.forgetVerdicts();
+        setChanged();
+    }
+
     /** Steps to the next condition, or to the previous one; the list wraps around. */
     public Selection step(boolean back) {
         int index = SELECTIONS.indexOf(selection);
@@ -75,8 +90,49 @@ public final class SeedStoreBlockEntity extends BlockEntity {
      * genome; a seed with no genome has nothing to decide by and passes only {@code all}.
      */
     public boolean passes(ItemStack stack) {
+        return passes(selection, stack);
+    }
+
+    /** Whether the seeds of the stack pass the condition; the window marks them by it too. */
+    public static boolean passes(Selection selection, ItemStack stack) {
         Individual genome = stack.get(FarmingEvolution.GENOME);
         return genome == null ? selection.id().equals("all") : selection.passes(genome);
+    }
+
+    /** How many seeds of the stack's genome the store holds, over all its slots. */
+    public int count(ItemStack like) {
+        int count = 0;
+        for (ItemStack stack : contents()) {
+            if (ItemStack.isSameItemSameComponents(stack, like)) {
+                count += stack.getCount();
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Takes up to {@code amount} seeds of the stack's genome, from whatever slots hold it, as
+     * one stack: what the player takes by hand in the window. The condition does not apply,
+     * it is for automation.
+     */
+    public ItemStack takeByHand(ItemStack like, int amount) {
+        ItemStack wanted = like.copyWithCount(1);
+        ItemStack taken = ItemStack.EMPTY;
+        for (int slot = 0; slot < SLOTS && taken.getCount() < amount; slot++) {
+            ItemStack stack = storage.getStackInSlot(slot);
+            if (stack.isEmpty() || !ItemStack.isSameItemSameComponents(stack, wanted)) {
+                continue;
+            }
+            int take = Math.min(amount - taken.getCount(), stack.getCount());
+            if (taken.isEmpty()) {
+                taken = stack.copyWithCount(take);
+            } else {
+                taken.grow(take);
+            }
+            int left = stack.getCount() - take;
+            storage.setStackInSlot(slot, left > 0 ? stack.copyWithCount(left) : ItemStack.EMPTY);
+        }
+        return taken;
     }
 
     /** The stacks the store holds, in slot order. */
