@@ -1,5 +1,5 @@
 # Issue #78: holding the right button eats a wild berry in survival. The food level in the
-# state line goes up by the berry's 2 points and the stack in the hand goes down by one.
+# state line goes up by the berry's 1 point and the stack in the hand goes down by one.
 # Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/eat-berry.txt
 command /time set day
 command /gamerule doDaylightCycle false

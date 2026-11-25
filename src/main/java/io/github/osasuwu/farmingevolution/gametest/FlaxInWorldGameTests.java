@@ -160,7 +160,7 @@ public final class FlaxInWorldGameTests {
     public static void seedAndWildBerriesRestoreHunger(GameTestHelper helper) {
         expectEating(helper, FarmingEvolution.SEEDS.get(), 1);
         expectEating(helper, BuiltInRegistries.ITEM.getOptional(id("wild_berries"))
-                .orElseThrow(() -> new GameTestAssertException("No item wild_berries")), 2);
+                .orElseThrow(() -> new GameTestAssertException("No item wild_berries")), 1);
         helper.succeed();
     }
 

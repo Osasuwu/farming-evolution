@@ -20,7 +20,7 @@ public final class WildFood {
     public static final int SEED_NUTRITION = 1;
 
     /** Food points a wild berry restores. */
-    public static final int BERRY_NUTRITION = 2;
+    public static final int BERRY_NUTRITION = 1;
 
     /** Saturation modifier of both: saturation gained is nutrition × 0.1 × 2. */
     public static final float SATURATION_MODIFIER = 0.1F;
