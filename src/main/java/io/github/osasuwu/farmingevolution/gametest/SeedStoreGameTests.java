@@ -205,8 +205,7 @@ public final class SeedStoreGameTests {
         BlockPos hopperPos = storePos.below();
         helper.setBlock(storePos, SeedStore.BLOCK.get());
         SeedStoreBlockEntity store = store(helper, storePos);
-        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
-        stepTo(helper, player, storePos, "variety/strong_flax");
+        stepTo(helper, storePos, "variety/strong_flax");
         insertAll(store.storage(), seed(flax(9)));
         helper.setBlock(hopperPos, Blocks.HOPPER.defaultBlockState().setValue(HopperBlock.FACING, Direction.DOWN));
         IItemHandler hopper = handler(helper, hopperPos);
@@ -218,7 +217,7 @@ public final class SeedStoreGameTests {
                 .thenExecuteAfter(30, () -> {
                     assertSameSeeds("hopper", List.of(seed(flax(9))), contents(hopper));
                     assertSameSeeds("store", List.of(seed(flax(5))), store.contents());
-                    stepTo(helper, player, storePos, "all");
+                    stepTo(helper, storePos, "all");
                 })
                 .thenExecuteAfter(30, () -> {
                     assertSameSeeds("hopper", List.of(seed(flax(9)), seed(flax(5))), contents(hopper));
@@ -227,25 +226,22 @@ public final class SeedStoreGameTests {
                 .thenSucceed();
     }
 
-    /** Use while sneaking steps back: from the first condition, hold, to the last one, all. */
+    /** Stepping back wraps around: from the first condition, hold, to the last one, all, and forward again. */
     @GameTest(template = "empty")
-    public static void sneakingUseStepsBack(GameTestHelper helper) {
+    public static void stepBackWrapsAround(GameTestHelper helper) {
         BlockPos storePos = new BlockPos(1, 1, 1);
         helper.setBlock(storePos, SeedStore.BLOCK.get());
         SeedStoreBlockEntity store = store(helper, storePos);
         if (!store.selection().id().equals("hold")) {
             throw new GameTestAssertException("A new store's condition is " + store.selection() + ", not hold");
         }
-        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
-        player.setShiftKeyDown(true);
-        helper.useBlock(storePos, player);
+        store.step(true);
         if (!store.selection().id().equals("all")) {
-            throw new GameTestAssertException("Sneaking use stepped from hold to " + store.selection() + ", not all");
+            throw new GameTestAssertException("Stepping back went from hold to " + store.selection() + ", not all");
         }
-        player.setShiftKeyDown(false);
-        helper.useBlock(storePos, player);
+        store.step(false);
         if (!store.selection().id().equals("hold")) {
-            throw new GameTestAssertException("Use stepped from all to " + store.selection() + ", not hold");
+            throw new GameTestAssertException("Stepping went from all to " + store.selection() + ", not hold");
         }
         helper.succeed();
     }
@@ -266,9 +262,7 @@ public final class SeedStoreGameTests {
         for (ItemStack stack : seeds) {
             insertAll(store.storage(), stack.copy());
         }
-        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
-        player.setShiftKeyDown(true);
-        helper.useBlock(storePos, player);
+        store.step(true);
 
         CompoundTag saved = store.saveWithFullMetadata(helper.getLevel().registryAccess());
         BlockEntity read = BlockEntity.loadStatic(helper.absolutePos(storePos), helper.getBlockState(storePos), saved,
@@ -331,7 +325,7 @@ public final class SeedStoreGameTests {
 
     /**
      * Fills a store with {@link #mixedSet()} and a seed with no genome, sets the condition by
-     * using the store until it shows the wanted one, and puts a hopper under it. After the hopper
+     * stepping it until it shows the wanted one, and puts a hopper under it. After the hopper
      * had time to pull everything it may, it holds exactly the expected seeds and the store
      * everything else.
      *
@@ -349,7 +343,7 @@ public final class SeedStoreGameTests {
             insertAll(store.storage(), stack.copy());
         }
 
-        stepTo(helper, helper.makeMockPlayer(GameType.SURVIVAL), storePos, selection);
+        stepTo(helper, storePos, selection);
 
         helper.setBlock(hopperPos, Blocks.HOPPER.defaultBlockState().setValue(HopperBlock.FACING, Direction.DOWN));
         IItemHandler hopper = handler(helper, hopperPos);
@@ -365,16 +359,18 @@ public final class SeedStoreGameTests {
         });
     }
 
-    /** Uses the store with an empty hand, as the player does, until it shows the condition. */
-    private static void stepTo(GameTestHelper helper, Player player, BlockPos storePos, String selection) {
+    /**
+     * Steps the store's condition forward until it shows the wanted one. How the player sets the
+     * condition (the window of #91) is tested in {@code SeedStoreWindowGameTests}.
+     */
+    private static void stepTo(GameTestHelper helper, BlockPos storePos, String selection) {
         SeedStoreBlockEntity store = store(helper, storePos);
-        player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         int steps = 0;
         while (!store.selection().id().equals(selection)) {
             if (++steps > BREEDING.selections().size()) {
-                throw new GameTestAssertException("Using the store never reached the condition " + selection);
+                throw new GameTestAssertException("Stepping the store never reached the condition " + selection);
             }
-            helper.useBlock(storePos, player);
+            store.step(false);
         }
     }
 
