@@ -1,0 +1,26 @@
+# Checklist #31, "Климат виден игроку" (issue #67), second half: run after oil-flax.txt. Put a
+# seed whose species is oil_flax (see "slots" at the end of oil-flax.txt) into hotbar slot 6
+# (menu slot 41) first; the scenario plants it in the warm dry place, ripens it and harvests Oil Flax Fiber.
+# Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/oil-flax-grow.txt
+tp -1500.5 -60 1998.5 0 30
+command /kill @e[type=item]
+command /setblock -1500 -60 2000 minecraft:air
+command /fill -1503 -61 2000 -1498 -61 2000 minecraft:farmland
+command /fill -1503 -61 2001 -1498 -61 2001 minecraft:water
+slot 6
+lookat -1500 -61 2000
+use
+# The analyzer (slot 2) on the young plant: species oil_flax, gives Oil Flax Fiber.
+slot 2
+lookat -1500 -60 2000
+use
+shot oil-flax-plant-analyzer
+command /gamerule randomTickSpeed 3000
+wait 200
+command /gamerule randomTickSpeed 0
+shot oil-flax-plant-ripe
+slot 9
+lookat -1500 -60 2000
+mine 10
+drops
+shot oil-flax-plant-harvest
