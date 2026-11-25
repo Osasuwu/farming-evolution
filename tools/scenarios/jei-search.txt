@@ -21,10 +21,7 @@ clickat 1070 672 right
 type analyzer
 shot jei-search-analyzer
 jei has farmingevolution:analyzer
-# History: the analyzer has a recipe only until #104 (slice 4); after it this frame shows none.
-clickat 967 108
-shot jei-list-analyzer-recipe
-key escape
+# The analyzer is a debug tool without a recipe (#104): JEI finds it, there is nothing to open.
 clickat 1070 672
 clickat 1070 672 right
 type seed store
