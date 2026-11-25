@@ -17,7 +17,7 @@
   "runs": 1000,
   "generation_limit": 40,
   "methods": [
-    {"id": "selection", "sees": "expressed", "offspring": 8, "minutes_per_generation": 5},
-    {"id": "crossing", "sees": "alleles", "offspring": 8, "minutes_per_generation": 5}
+    {"id": "selection", "sees": "expressed", "offspring": 8, "minutes_per_generation": 9},
+    {"id": "crossing", "sees": "alleles", "offspring": 8, "minutes_per_generation": 9}
   ]
 }
