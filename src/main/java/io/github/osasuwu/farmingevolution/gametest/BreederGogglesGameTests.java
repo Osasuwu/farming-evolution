@@ -115,8 +115,8 @@ public final class BreederGogglesGameTests {
     }
 
     /**
-     * The tooltip of a seed shows its genome, species and traits with both alleles, only to a
-     * player who wears the goggles; otherwise it is the name alone, as before.
+     * The tooltip of a seed shows its genome, species and traits with both alleles, right under
+     * the name, only to a player who wears the goggles; otherwise it is the name alone, as before.
      */
     @GameTest(template = "empty")
     public static void seedTooltipShowsGenomeOnlyWithGoggles(GameTestHelper helper) {
@@ -133,9 +133,12 @@ public final class BreederGogglesGameTests {
         }
 
         player.setItemSlot(EquipmentSlot.HEAD, goggles());
+        // Only the first three lines: what stands under the genome (the legend of the alleles,
+        // issue #105) is the business of the tests of that line.
         List<String> worn = tooltip(helper, seed, player);
-        if (!worn.equals(List.of(name, "species: fiber_flax | fiber_flax", "fiber_strength: 7 | 4"))
-                && !worn.equals(List.of(name, "fiber_strength: 7 | 4", "species: fiber_flax | fiber_flax"))) {
+        List<String> head = worn.subList(0, Math.min(3, worn.size()));
+        if (!head.equals(List.of(name, "species: fiber_flax | fiber_flax", "fiber_strength: 7 | 4"))
+                && !head.equals(List.of(name, "fiber_strength: 7 | 4", "species: fiber_flax | fiber_flax"))) {
             throw new GameTestAssertException("Expected the name, then the species and the strength with both alleles,"
                     + " in the tooltip with goggles, got " + worn);
         }
