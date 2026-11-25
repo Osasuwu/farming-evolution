@@ -4,8 +4,11 @@ import io.github.osasuwu.farmingevolution.breeding.Breeding;
 import io.github.osasuwu.farmingevolution.breeding.Individual;
 import io.github.osasuwu.farmingevolution.breeding.PackData;
 import io.github.osasuwu.farmingevolution.breeding.Variety;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -42,6 +45,19 @@ public final class Products {
     /** The path of the item id of the product of a plant of the species that fits no variety. */
     public static String speciesItem(String speciesId) {
         return speciesId + NO_VARIETY_SUFFIX;
+    }
+
+    /** The item ids of every product, of a variety and of a species. */
+    public List<ResourceLocation> ids() {
+        List<ResourceLocation> all = new ArrayList<>();
+        ofVariety.values().forEach(item -> all.add(item.getId()));
+        ofSpecies.values().forEach(item -> all.add(item.getId()));
+        return List.copyOf(all);
+    }
+
+    /** The products of plants that fit no variety, one for each species; only once items are registered. */
+    public List<Item> ofSpecies() {
+        return ofSpecies.values().stream().map(DeferredItem::get).toList();
     }
 
     /**
