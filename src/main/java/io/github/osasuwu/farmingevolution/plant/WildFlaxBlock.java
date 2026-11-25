@@ -14,7 +14,8 @@ import net.minecraft.world.level.storage.loot.LootParams;
  * Wild flax, the wild source of the flax line (CONCEPT.md, "Вертикальный срез"). World
  * generation scatters it over the overworld. It does not spread: a player who lost every
  * plant and seed finds it again in new chunks (#104, #122). Breaking it gives seeds of the
- * wild type of {@link #SPECIES}.
+ * wild type of {@link #SPECIES}, and the wind carries the same genome as pollen to the plants
+ * ripening beside it (#123).
  */
 public final class WildFlaxBlock extends BushBlock {
     public static final MapCodec<WildFlaxBlock> CODEC = simpleCodec(WildFlaxBlock::new);
@@ -45,9 +46,17 @@ public final class WildFlaxBlock extends BushBlock {
      * creative tab of the mod holds.
      */
     public static ItemStack wildSeeds(int count) {
-        Individual wild = FarmingEvolution.BREEDING.wild(SPECIES, Sex.NONE);
         ItemStack seeds = new ItemStack(FarmingEvolution.SEEDS.get(), count);
-        seeds.set(FarmingEvolution.GENOME, wild);
+        seeds.set(FarmingEvolution.GENOME, genome());
         return seeds;
+    }
+
+    /**
+     * The genome of a wild flax: that of its seeds, and of the pollen the wind carries from it
+     * to the plants beside it (CONCEPT.md, "Опыление"). The same everywhere until #119 makes it
+     * depend on the climate of the place.
+     */
+    public static Individual genome() {
+        return FarmingEvolution.BREEDING.wild(SPECIES, Sex.NONE);
     }
 }
