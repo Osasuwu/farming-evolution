@@ -1,23 +1,11 @@
 {
-  "pack": {
-    "chromosomes": [
-      {"id": "fiber_strength", "kind": "trait", "min": 1, "max": 10, "shift_chance": 0.2}
-    ],
-    "species": [
-      {"id": "flax", "wild": {"fiber_strength": 3}}
-    ],
-    "varieties": [
-      {"id": "strong_fiber", "species": "flax", "thresholds": {"fiber_strength": 7}}
-    ],
-    "requirements": [
-      {"id": "strong_fiber", "species": "flax", "thresholds": {"fiber_strength": 7}}
-    ]
-  },
+  "pack": "../src/main/resources/farmingevolution/pack.json",
   "seed": 23,
   "runs": 1000,
-  "generation_limit": 40,
+  "seeds_per_plant": 2,
+  "minutes_per_generation": 9,
   "methods": [
-    {"id": "selection", "sees": "expressed", "offspring": 8, "minutes_per_generation": 9},
-    {"id": "crossing", "sees": "alleles", "offspring": 8, "minutes_per_generation": 9}
+    {"id": "selection", "pollination": "self", "plants": 4, "minutes_limit": 180},
+    {"id": "wind", "pollination": "wind", "plants": 4, "minutes_limit": 180}
   ]
 }

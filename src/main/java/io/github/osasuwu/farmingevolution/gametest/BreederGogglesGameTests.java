@@ -115,8 +115,10 @@ public final class BreederGogglesGameTests {
     }
 
     /**
-     * The tooltip of a seed shows its genome, species and traits with both alleles, right under
-     * the name, only to a player who wears the goggles; otherwise it is the name alone, as before.
+     * The tooltip of a seed shows its genome, the species and the expressed value of each trait,
+     * under the name, only to a player who wears the goggles; otherwise it is the name alone, as
+     * before. Whether the carried allele is shown is not asked here: issue #104 hides it, and its
+     * slice (#121) brings the test of that.
      */
     @GameTest(template = "empty")
     public static void seedTooltipShowsGenomeOnlyWithGoggles(GameTestHelper helper) {
@@ -133,13 +135,13 @@ public final class BreederGogglesGameTests {
         }
 
         player.setItemSlot(EquipmentSlot.HEAD, goggles());
-        // Only the first three lines: what stands under the genome (the legend of the alleles,
-        // issue #105) is the business of the tests of that line.
         List<String> worn = tooltip(helper, seed, player);
-        List<String> head = worn.subList(0, Math.min(3, worn.size()));
-        if (!head.equals(List.of(name, "species: fiber_flax | fiber_flax", "fiber_strength: 7 | 4"))
-                && !head.equals(List.of(name, "fiber_strength: 7 | 4", "species: fiber_flax | fiber_flax"))) {
-            throw new GameTestAssertException("Expected the name, then the species and the strength with both alleles,"
+        // Right under the name, in either order: the line of the species and that of the strength.
+        List<String> genome = worn.subList(Math.min(1, worn.size()), Math.min(3, worn.size()));
+        if (worn.size() < 3 || !worn.get(0).equals(name)
+                || genome.stream().noneMatch(line -> line.startsWith("species: fiber_flax"))
+                || genome.stream().noneMatch(line -> line.startsWith("fiber_strength: 7"))) {
+            throw new GameTestAssertException("Expected the name, then the species and the expressed strength 7,"
                     + " in the tooltip with goggles, got " + worn);
         }
         List<String> plain = tooltip(helper, new ItemStack(FarmingEvolution.SEEDS.get()), player);
@@ -150,8 +152,10 @@ public final class BreederGogglesGameTests {
     }
 
     /**
-     * What the goggles show of a plant: the species with both alleles, the product and the
-     * ripeness, in colours that tell the name, the alleles and the product apart; no odds.
+     * What the goggles show of a plant: the species, the product and the ripeness, in colours
+     * that tell the name, the allele and the product apart; no odds. Which other lines stand
+     * there, and whether the carried allele is shown, is not asked here: issue #104 adds a line
+     * per trait and hides the carried allele, and its slice (#121) brings the test of that.
      */
     @GameTest(template = "empty")
     public static void plantReadoutShowsSpeciesProductAndRipenessWithoutOdds(GameTestHelper helper) {
@@ -161,12 +165,15 @@ public final class BreederGogglesGameTests {
 
         List<Component> growing = Readout.plant(plant);
         List<String> lines = strings(growing);
-        if (!lines.equals(List.of("species: fiber_flax | fiber_flax", "gives " + product, "growing: stage 1 of 8"))) {
+        Component speciesLine = lineStartingWith(growing, "species: fiber_flax");
+        Component productLine = lineStartingWith(growing, "gives " + product);
+        if (speciesLine == null || productLine == null || !lines.contains("gives " + product)
+                || !lines.contains("growing: stage 1 of 8")) {
             throw new GameTestAssertException("Expected the species, the product and the stage of a young plant, got " + lines);
         }
-        TextColor label = colorOf(growing.get(0), "species");
-        TextColor allele = colorOf(growing.get(0), "fiber_flax");
-        TextColor item = colorOf(growing.get(1), product);
+        TextColor label = colorOf(speciesLine, "species");
+        TextColor allele = colorOf(speciesLine, "fiber_flax");
+        TextColor item = colorOf(productLine, product);
         if (label == null || allele == null || item == null || label.equals(allele) || label.equals(item) || allele.equals(item)) {
             throw new GameTestAssertException("Expected the name, the allele and the product in three colours, got "
                     + label + ", " + allele + ", " + item);
@@ -174,7 +181,8 @@ public final class BreederGogglesGameTests {
 
         helper.setBlock(PLANT, helper.getBlockState(PLANT).setValue(CropBlock.AGE, CropBlock.MAX_AGE));
         List<String> ripe = strings(Readout.plant(plantAt(helper)));
-        if (!ripe.equals(List.of("species: fiber_flax | fiber_flax", "gives " + product, "ripe"))) {
+        if (ripe.stream().noneMatch(line -> line.startsWith("species: fiber_flax")) || !ripe.contains("gives " + product)
+                || !ripe.contains("ripe") || ripe.contains("growing: stage 1 of 8")) {
             throw new GameTestAssertException("Expected a ripe plant shown as ripe, got " + ripe);
         }
         if (ripe.stream().anyMatch(line -> line.contains("%") || line.contains("&"))) {
@@ -190,77 +198,31 @@ public final class BreederGogglesGameTests {
     }
 
     /**
-     * The line that says what the two values of a chromosome are (issue #105), as the player
-     * reads it: the same text under the seed tooltip, the plant panel and in the analyzer.
-     */
-    static final String LEGEND = "alleles: expressed | carried, one from each parent";
-
-    /**
-     * With the goggles the tooltip of a seed is its name, its genome and, last, the legend of the
-     * alleles; the words of the legend wear the colours of the expressed and the carried value.
+     * The panel of the plant looked at in the HUD begins with the lines of the plant readout; a
+     * plant without a genome is shown as such and nothing else. What follows the readout lines
+     * (today the legend of the alleles) is not asked here: issue #104 removes or rewrites the
+     * legend, and its slice (#121) brings the test of that.
      */
     @GameTest(template = "empty")
-    public static void seedTooltipWithGogglesEndsWithTheAlleleLegend(GameTestHelper helper) {
-        ItemStack seed = seedOf(flax(7, 4));
-        FakePlayer player = new FakePlayer(helper.getLevel(), PROFILE);
-        player.setItemSlot(EquipmentSlot.HEAD, goggles());
-        String name = seed.getHoverName().getString();
-
-        List<Component> lines = seed.getTooltipLines(Item.TooltipContext.of(helper.getLevel()), player, TooltipFlag.NORMAL);
-        List<String> text = strings(lines);
-        if (!text.equals(List.of(name, "species: fiber_flax | fiber_flax", "fiber_strength: 7 | 4", LEGEND))
-                && !text.equals(List.of(name, "fiber_strength: 7 | 4", "species: fiber_flax | fiber_flax", LEGEND))) {
-            throw new GameTestAssertException("Expected the name, the genome and the legend of the alleles in the tooltip"
-                    + " with goggles, got " + text);
+    public static void plantPanelBeginsWithThePlantReadout(GameTestHelper helper) {
+        plant(helper, flax(7, 4));
+        List<String> readout = strings(Readout.plant(plantAt(helper)));
+        List<String> panel = strings(Readout.plantPanel(plantAt(helper)));
+        if (readout.isEmpty() || panel.size() < readout.size() || !panel.subList(0, readout.size()).equals(readout)) {
+            throw new GameTestAssertException("Expected the panel to begin with the readout " + readout + ", got " + panel);
         }
-        expectLegendColours(lines.get(3), lines.get(text.indexOf("fiber_strength: 7 | 4")), "7", "4");
-        helper.succeed();
-    }
-
-    /**
-     * The plant panel of the HUD is the readout of the plant and, under a plant with a genome,
-     * the legend of the alleles, coloured as the species' expressed and carried allele are; a
-     * plant without a genome gets no legend.
-     */
-    @GameTest(template = "empty")
-    public static void plantPanelEndsWithTheAlleleLegend(GameTestHelper helper) {
-        Individual hybrid = new Individual(Sex.NONE, Map.of(
-                Breeding.SPECIES, new Chromosome(new Allele.Named("fiber_flax", true), new Allele.Named("wild_flax", false)),
-                "fiber_strength", new Chromosome(new Allele.Numeric(7), new Allele.Numeric(4))));
-        plant(helper, hybrid);
-        String product = new ItemStack(FarmingEvolution.PRODUCTS.of(hybrid)).getHoverName().getString();
-
-        List<Component> panel = Readout.plantPanel(plantAt(helper));
-        List<String> text = strings(panel);
-        if (!text.equals(List.of("species: fiber_flax | wild_flax", "gives " + product, "growing: stage 1 of 8", LEGEND))) {
-            throw new GameTestAssertException("Expected the species, the product, the stage and the legend of the alleles,"
-                    + " got " + text);
-        }
-        expectLegendColours(panel.get(3), panel.get(0), "fiber_flax", "wild_flax");
 
         plantAt(helper).setGenome(null);
         List<String> none = strings(Readout.plantPanel(plantAt(helper)));
         if (!none.equals(List.of("no genome"))) {
-            throw new GameTestAssertException("Expected a plant without a genome shown as such, without a legend, got " + none);
+            throw new GameTestAssertException("Expected a plant without a genome shown as such, got " + none);
         }
         helper.succeed();
     }
 
-    /**
-     * The word {@code expressed} of the legend has the colour of the expressed value of the line,
-     * {@code carried} that of the carried one, and the two colours differ.
-     */
-    static void expectLegendColours(Component legend, Component line, String expressed, String carried) {
-        TextColor expressedWord = colorOf(legend, "expressed");
-        TextColor carriedWord = colorOf(legend, "carried");
-        TextColor expressedValue = colorOf(line, expressed);
-        TextColor carriedValue = colorOf(line, carried);
-        if (expressedWord == null || carriedWord == null || expressedWord.equals(carriedWord)
-                || !expressedWord.equals(expressedValue) || !carriedWord.equals(carriedValue)) {
-            throw new GameTestAssertException("Expected 'expressed' in the colour of " + expressed + " (" + expressedValue
-                    + ") and 'carried' in that of " + carried + " (" + carriedValue + "), two colours, got "
-                    + expressedWord + " and " + carriedWord + " in " + legend.getString());
-        }
+    /** The first line whose text starts with this; null when there is none. */
+    static Component lineStartingWith(List<Component> lines, String start) {
+        return lines.stream().filter(line -> line.getString().startsWith(start)).findFirst().orElse(null);
     }
 
     /** The climate the goggles show is that of the place: 30 °C, 10 % in the hot dry band, 12 °C, 50 % at the origin. */

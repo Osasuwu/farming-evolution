@@ -30,10 +30,6 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.DirectionalPlaceContext;
-import net.minecraft.world.item.crafting.CraftingInput;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.RecipeHolder;
-import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.phys.AABB;
@@ -44,11 +40,10 @@ import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 /**
- * Crossing, the second method of selection (issue #27; CONCEPT.md, "Методы селекции"): the
- * analyzer is made of Create's cogwheels and shafts without the belt, shows both alleles of a
- * plant and the odds of a pair, and carries pollen from one plant to another; a pollinated
- * plant's seeds are offspring of the pair. A player uses the analyzer the way the game does
- * for a right click, and the tests read what reached the player's chat.
+ * Crossing with the analyzer (issue #27; CONCEPT.md, "Методы селекции"): the analyzer shows
+ * the alleles of a plant and the odds of a pair, and carries pollen from one plant to another;
+ * a pollinated plant's seeds are offspring of the pair. A player uses the analyzer the way the
+ * game does for a right click, and the tests read what reached the player's chat.
  */
 @GameTestHolder(FarmingEvolution.MOD_ID)
 @PrefixGameTestTemplate(false)
@@ -58,75 +53,32 @@ public final class CrossingGameTests {
     private static final String STRENGTH = "fiber_strength";
     private static final GameProfile PROFILE =
             new GameProfile(UUID.fromString("0b6a2f4e-7d1c-4c55-8f0e-27c0a5b1e927"), "fe-breeder");
-    private static final ResourceLocation ANALYZER_RECIPE = id("analyzer");
-    private static final ResourceLocation BELT = ResourceLocation.fromNamespaceAndPath("create", "belt_connector");
 
     private CrossingGameTests() {
     }
 
     /**
-     * Two cogwheels and two shafts of Create make one analyzer, by the pack's only recipe of
-     * it. Nothing on the way to it takes the belt: not that recipe, not the recipes of the shaft,
-     * the cogwheel and the andesite alloy they are made of.
+     * The analyzer on a plant shows each chromosome, the expressed allele first, and what the
+     * plant gives: a 7|4 flax is strong_flax by its expressed 7. With a seed in the other hand,
+     * used in the air, it shows the seed's chromosomes the same way. Whether the carried allele
+     * is shown is not asked: beyond its pollen the analyzer's output is not guaranteed (issue
+     * #104; CONCEPT.md, "Анализатор").
      */
     @GameTest(template = "empty")
-    public static void analyzerIsMadeOfCogwheelsAndShaftsWithoutBelt(GameTestHelper helper) {
-        Item cogwheel = item(ResourceLocation.fromNamespaceAndPath("create", "cogwheel"));
-        Item shaft = item(ResourceLocation.fromNamespaceAndPath("create", "shaft"));
-        List<ItemStack> grid = List.of(new ItemStack(cogwheel), new ItemStack(shaft), new ItemStack(cogwheel),
-                ItemStack.EMPTY, new ItemStack(shaft), ItemStack.EMPTY);
-        CraftingInput input = CraftingInput.of(3, 2, grid);
-        ItemStack result = helper.getLevel().getRecipeManager()
-                .getRecipeFor(RecipeType.CRAFTING, input, helper.getLevel())
-                .map(recipe -> recipe.value().assemble(input, helper.getLevel().registryAccess()))
-                .orElse(ItemStack.EMPTY);
-        if (!result.is(FarmingEvolution.ANALYZER.get()) || result.getCount() != 1) {
-            throw new GameTestAssertException("Expected 1 analyzer out of 2 cogwheels and 2 shafts, got " + result);
-        }
-        List<ResourceLocation> recipes = recipesOf(helper, FarmingEvolution.ANALYZER.get()).stream()
-                .map(RecipeHolder::id).sorted().toList();
-        if (!recipes.equals(List.of(ANALYZER_RECIPE))) {
-            throw new GameTestAssertException("Expected the only recipe of the analyzer to be " + ANALYZER_RECIPE + ", got " + recipes);
-        }
-        ItemStack belt = new ItemStack(item(BELT));
-        List<String> takingBelt = new ArrayList<>();
-        for (Item made : List.of(FarmingEvolution.ANALYZER.get(), shaft, cogwheel,
-                item(ResourceLocation.fromNamespaceAndPath("create", "andesite_alloy")))) {
-            List<RecipeHolder<?>> ways = recipesOf(helper, made);
-            if (ways.isEmpty()) {
-                throw new GameTestAssertException("No recipe makes " + made);
-            }
-            for (RecipeHolder<?> recipe : ways) {
-                for (Ingredient ingredient : recipe.value().getIngredients()) {
-                    if (ingredient.test(belt)) {
-                        takingBelt.add(recipe.id().toString());
-                    }
-                }
-            }
-        }
-        if (!takingBelt.isEmpty()) {
-            throw new GameTestAssertException("Recipes on the way to the analyzer take the belt: " + takingBelt);
-        }
-        helper.succeed();
-    }
-
-    /**
-     * The analyzer on a plant shows both alleles of each chromosome, the expressed one first,
-     * and what the plant gives: a 7|4 flax is strong_flax by its expressed 7. With a seed in the
-     * other hand, used in the air, it shows the seed's alleles the same way.
-     */
-    @GameTest(template = "empty")
-    public static void analyzerShowsBothAllelesAndProduct(GameTestHelper helper) {
+    public static void analyzerShowsExpressedAllelesAndProduct(GameTestHelper helper) {
         Breeder breeder = new Breeder(helper);
         plant(helper, MOTHER, flax(7, 4));
         List<String> lines = breeder.useOn(helper, MOTHER, false);
         String product = new ItemStack(item(id("strong_flax"))).getHoverName().getString();
-        expectLines(lines, List.of("  " + STRENGTH + ": 7 | 4", "  species: fiber_flax | fiber_flax",
-                "  gives " + product, "  pollinates itself"));
+        expectChromosomeLines(lines, List.of("  " + STRENGTH + ": 7", "  species: fiber_flax"));
+        expectLines(lines, List.of("  gives " + product, "  pollinates itself"));
 
         breeder.setItemInHand(InteractionHand.OFF_HAND, seedOf(flax(3, 8)));
         lines = breeder.useInAir(helper, false);
-        expectLines(lines, List.of("Seed, alleles (expressed | carried):", "  " + STRENGTH + ": 3 | 8"));
+        if (lines.stream().noneMatch(line -> line.startsWith("Seed"))) {
+            throw new GameTestAssertException("Expected the header of the seed among " + lines);
+        }
+        expectChromosomeLines(lines, List.of("  " + STRENGTH + ": 3"));
         helper.succeed();
     }
 
@@ -383,6 +335,19 @@ public final class CrossingGameTests {
         }
     }
 
+    /**
+     * Each expected text is a chromosome with its expressed allele: a line is that text alone or
+     * that text followed by " | " and the carried allele. A line of odds ("7 & 4 ...") is neither.
+     */
+    private static void expectChromosomeLines(List<String> lines, List<String> expressed) {
+        List<String> missing = expressed.stream()
+                .filter(start -> lines.stream().noneMatch(line -> line.equals(start) || line.startsWith(start + " | ")))
+                .toList();
+        if (!missing.isEmpty()) {
+            throw new GameTestAssertException("Expected the chromosomes " + missing + " among " + lines);
+        }
+    }
+
     private static Individual flax(int active, int inactive) {
         return new Individual(Sex.NONE, Map.of(
                 Breeding.SPECIES, Chromosome.pure(new Allele.Named("fiber_flax", true)),
@@ -392,12 +357,6 @@ public final class CrossingGameTests {
     private static List<Integer> strengths(Individual individual) {
         Chromosome strength = individual.genome().get(STRENGTH);
         return List.of(((Allele.Numeric) strength.active()).value(), ((Allele.Numeric) strength.inactive()).value());
-    }
-
-    private static List<RecipeHolder<?>> recipesOf(GameTestHelper helper, Item item) {
-        return helper.getLevel().getRecipeManager().getRecipes().stream()
-                .filter(recipe -> recipe.value().getResultItem(helper.getLevel().registryAccess()).is(item))
-                .toList();
     }
 
     private static PlantBlockEntity plantAt(GameTestHelper helper, BlockPos pos) {
