@@ -6,7 +6,6 @@ tp -1500.5 -60 1998.5 0 30
 command /kill @e[type=item]
 command /setblock -1500 -60 2000 minecraft:air
 command /fill -1503 -61 2000 -1498 -61 2000 minecraft:farmland
-command /fill -1503 -61 2001 -1498 -61 2001 minecraft:water
 slot 6
 lookat -1500 -61 2000
 use

@@ -24,8 +24,6 @@ shot oil-flax-origin-analyzer
 # The warm dry place: a row of six plants on farmland, one of them under the analyzer.
 tp -1500.5 -60 1998.5 0 30
 command /fill -1503 -61 2000 -1498 -61 2000 minecraft:farmland
-# Water behind the row: dry farmland turns to dirt under fast random ticks and drops the plants.
-command /fill -1503 -61 2001 -1498 -61 2001 minecraft:water
 slot 1
 lookat -1503 -61 2000
 use
