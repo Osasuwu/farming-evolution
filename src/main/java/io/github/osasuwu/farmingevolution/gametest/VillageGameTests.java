@@ -6,6 +6,7 @@ import io.github.osasuwu.farmingevolution.breeding.Sex;
 import io.github.osasuwu.farmingevolution.plant.PlantBlockEntity;
 import io.github.osasuwu.farmingevolution.plant.Products;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -35,6 +36,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.MerchantOffer;
+import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ComposterBlock;
@@ -76,6 +78,16 @@ public final class VillageGameTests {
         farmer.getBrain().setMemory(MemoryModuleType.SECONDARY_JOB_SITE,
                 List.of(GlobalPos.of(level.dimension(), helper.absolutePos(SOIL))));
 
+        // Everything the farming behaviour needs besides the mod's rule, so that the plant does
+        // not stay only because the farmer could not have started.
+        if (!level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)
+                || farmer.getVillagerData().getProfession() != VillagerProfession.FARMER
+                || !farmer.getBrain().hasMemoryValue(MemoryModuleType.SECONDARY_JOB_SITE)
+                || farmer.getBrain().hasMemoryValue(MemoryModuleType.WALK_TARGET)) {
+            throw new GameTestAssertException("The farmer is not set up to work: mobGriefing "
+                    + level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) + ", " + farmer.getVillagerData()
+                    + ", memories " + farmer.getBrain().getMemories().keySet());
+        }
         HarvestFarmland harvest = new HarvestFarmland();
         long time = level.getGameTime();
         if (harvest.tryStart(level, farmer, time)) {
@@ -166,13 +178,16 @@ public final class VillageGameTests {
     }
 
     /**
-     * A novice farmer offers two trades: it buys a product of the mod for an emerald and sells
+     * A novice farmer offers two trades: it buys the product of a plant that fits no variety for
+     * an emerald, never the product of a variety, and sells
      * bone meal for an emerald. No offer takes or gives an item a player can eat, of Minecraft or
      * of the mod.
      */
     @GameTest(template = "empty")
     public static void noviceFarmerTradesBoneMealAndNoFood(GameTestHelper helper) {
-        Set<Item> products = products();
+        Set<Item> products = speciesProducts();
+        Set<Item> varietyProducts = new HashSet<>(products());
+        varietyProducts.removeAll(products);
         List<String> seen = new ArrayList<>();
         boolean buysProduct = false;
         boolean sellsBoneMeal = false;
@@ -189,6 +204,9 @@ public final class VillageGameTests {
                         .filter(stack -> stack.has(DataComponents.FOOD)).toList();
                 if (!food.isEmpty()) {
                     throw new GameTestAssertException("A farmer trades food " + food + " in " + seen.getLast());
+                }
+                if (varietyProducts.contains(costA.getItem())) {
+                    throw new GameTestAssertException("A farmer buys the product of a variety in " + seen.getLast());
                 }
                 if (products.contains(costA.getItem()) && costB.isEmpty() && result.is(Items.EMERALD)) {
                     buysProduct = true;
@@ -269,6 +287,17 @@ public final class VillageGameTests {
         Set<String> paths = new TreeSet<>();
         FarmingEvolution.PACK.varieties().keySet().forEach(id -> paths.add(Products.varietyItem(id)));
         FarmingEvolution.PACK.species().keySet().forEach(id -> paths.add(Products.speciesItem(id)));
+        return items(paths);
+    }
+
+    /** The product items of plants that fit no variety, one for each species of pack data. */
+    private static Set<Item> speciesProducts() {
+        Set<String> paths = new TreeSet<>();
+        FarmingEvolution.PACK.species().keySet().forEach(id -> paths.add(Products.speciesItem(id)));
+        return items(paths);
+    }
+
+    private static Set<Item> items(Set<String> paths) {
         Set<Item> items = paths.stream()
                 .map(path -> BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath(FarmingEvolution.MOD_ID, path)))
                 .collect(Collectors.toSet());
