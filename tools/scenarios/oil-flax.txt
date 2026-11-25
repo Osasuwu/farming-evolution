@@ -1,6 +1,8 @@
 # Checklist #31, "Климат виден игроку" (issue #67): fiber_flax, the flax a wild flax gives,
 # gives oil_flax among its seeds in a warm dry place (-1500, 2000: about 30 °C, humidity 10 %),
 # and the analyzer shows its chance there; near the origin of the world (12 °C, 50 %) neither.
+# History: after #104 (slice 4) the analyzer is a debug tool and its chances are not guaranteed;
+# the seeds of the harvest stay the check.
 # Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/oil-flax.txt
 # The seeds of the harvest are listed by "slots" at the end; plant one whose species is
 # oil_flax the same way to see it give Oil Flax Fiber.

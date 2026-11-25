@@ -3,6 +3,9 @@
 # shows the genome; without them neither. The analyzer says in words whether the climate
 # hybridization of the pair acts here: near the origin (12 °C, 50 %) fiber_flax × fiber_flax
 # gives no oil_flax, in the warm dry place (-1500, 2000: 30 °C, 10 %) it can.
+# History: until #104 (slice 1) the HUD and the tooltip show both alleles of the heterozygous seed
+# (7 | 4); after it they show only the expressed value. The analyzer's output is not guaranteed
+# after #104 (slice 4): it is a debug tool.
 # Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/breeder-goggles.txt
 command /time set day
 command /gamerule doDaylightCycle false

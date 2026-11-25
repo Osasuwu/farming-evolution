@@ -2,6 +2,8 @@
 # Shift-click from the inventory, then shows each filter and sort, the condition, the seed
 # tooltip, taking and putting by hand, GUI scale 2 and 3. Pixel points assume the 1280x720
 # frame; the store window is 194x222 GUI pixels, centred.
+# History: until #104 (slice 1) the seed tooltips in these frames show both alleles; after it,
+# the species and the expressed values only.
 # Run with gradlew runControl started:
 # java tools/ClientControl.java --scenario tools/scenarios/seed-store-window.txt
 command /time set day

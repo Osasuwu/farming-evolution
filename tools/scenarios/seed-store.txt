@@ -30,5 +30,7 @@ clickat 474 188
 hoverat 100 650
 shot seed-store-condition
 # The seed's tooltip: genome, count, whether it passes.
+# History: until #104 (slice 1) the tooltip shows both alleles; after it, the species and the
+# expressed values only.
 hoverat 480 268
 shot seed-store-tooltip

@@ -1,6 +1,8 @@
 # Checklist #31, "Скрещивание с анализатором": the analyzer is made on a crafting table from
 # Create parts, cogwheel, shaft, cogwheel on top and a shaft under the centre. JEI is not in
 # the dev environment, so the recipe is checked by laying it out in a crafting table by hand.
+# History: valid until #104 (slice 4) removes the analyzer's recipe; after that the analyzer is a
+# debug tool from the creative tab and commands, and this scenario no longer applies.
 # Crafting table slots: 0 result, 1-9 the grid row by row, 10-36 inventory, 37-45 hotbar.
 # Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/analyzer-recipe.txt
 command /time set day

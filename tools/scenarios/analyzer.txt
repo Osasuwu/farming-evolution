@@ -1,5 +1,7 @@
 # Checklist #31, "Скрещивание с анализатором": right click with the analyzer on a plant
 # prints both alleles of every chromosome in the chat.
+# History: after #104 (slice 4) the analyzer is a debug tool without a recipe, and its output
+# besides the pollen is not guaranteed.
 # Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/analyzer.txt
 command /time set day
 command /gamerule doDaylightCycle false
