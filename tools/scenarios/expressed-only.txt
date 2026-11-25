@@ -35,6 +35,8 @@ command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chro
 # The seed store: both genomes in by Shift-click from the hotbar (store menu slots 155, 156).
 tp 4.5 -60 0.5 0 30
 command /setblock 4 -60 3 farmingevolution:seed_store
+# An empty hand opens the window; seeds in hand would go into the store instead.
+slot 3
 lookat 4 -60 3
 use
 guiscale 2
