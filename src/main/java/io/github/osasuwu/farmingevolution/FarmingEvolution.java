@@ -12,6 +12,7 @@ import io.github.osasuwu.farmingevolution.breeding.PackDataException;
 import io.github.osasuwu.farmingevolution.climate.ClimateSource;
 import io.github.osasuwu.farmingevolution.climate.GradientClimate;
 import io.github.osasuwu.farmingevolution.plant.AnalyzerItem;
+import io.github.osasuwu.farmingevolution.plant.BreederGogglesItem;
 import io.github.osasuwu.farmingevolution.plant.GenomeCodec;
 import io.github.osasuwu.farmingevolution.plant.GeneratedPack;
 import io.github.osasuwu.farmingevolution.plant.PlantBlock;
@@ -114,6 +115,13 @@ public final class FarmingEvolution {
             () -> new AnalyzerItem(new Item.Properties().stacksTo(1)));
 
     /**
+     * The equipment of the first look at a plant: worn on the head, the goggles show the plant
+     * looked at, the climate of the place and the genome of a seed; see {@link BreederGogglesItem}.
+     */
+    public static final DeferredItem<BreederGogglesItem> BREEDER_GOGGLES = ITEMS.register("breeder_goggles",
+            () -> new BreederGogglesItem(new Item.Properties().stacksTo(1)));
+
+    /**
      * The growing plant of the storage prototype: one crop block for every species, since
      * the species is a chromosome of the genome.
      */
@@ -196,6 +204,7 @@ public final class FarmingEvolution {
         ATTACHMENTS.register(modBus);
         modBus.addListener(GENERATED::addPack);
         NeoForge.EVENT_BUS.addListener(RecipeGraphDump::onServerStarted);
+        NeoForge.EVENT_BUS.addListener(BreederGogglesItem::onTooltip);
         VanillaRemoval.register(modBus);
         SeedStore.register(modBus);
         CreativeTab.register(modBus);

@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "GFG"
+  ],
+  "key": {
+    "G": {"item": "minecraft:glass"},
+    "F": [
+      {"item": "farmingevolution:wild_flax_fiber"},
+      {"item": "farmingevolution:fiber_flax_fiber"},
+      {"item": "farmingevolution:oil_flax_fiber"},
+      {"item": "farmingevolution:strong_flax"}
+    ]
+  },
+  "result": {
+    "id": "farmingevolution:breeder_goggles",
+    "count": 1
+  }
+}

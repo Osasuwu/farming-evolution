@@ -25,7 +25,8 @@ import net.minecraft.world.level.Level;
  * seeds that are crosses with the pollen's plant.
  *
  * <ul>
- * <li>Use on a plant: its alleles, whose pollen it has, the odds of its seeds; with pollen in
+ * <li>Use on a plant: its alleles, whose pollen it has, the odds of its seeds, the climate of
+ * its place and whether a hybridization of its pair happens there (issue #90); with pollen in
  * the analyzer, also the odds of its seeds if pollinated with it.
  * <li>Sneak and use on a plant: take its pollen when the analyzer has none, otherwise
  * pollinate the plant with the analyzer's pollen. The pollen stays in the analyzer.
@@ -53,7 +54,8 @@ public final class AnalyzerItem extends Item {
         ItemStack analyzer = context.getItemInHand();
         Optional<PlantBlockEntity.Parents> parents = plant.parents(level);
         if (parents.isEmpty()) {
-            send(player, List.of(Analysis.text("no_genome", "This plant has no genome: it gives no product and no offspring.")));
+            send(player, List.of(Analysis.text("no_genome", "This plant has no genome: it gives no product and no offspring.")
+                    .withStyle(Readout.MISSING)));
             return InteractionResult.CONSUME;
         }
         Individual genome = parents.get().first();
@@ -61,14 +63,16 @@ public final class AnalyzerItem extends Item {
         List<Component> lines = new ArrayList<>();
         if (player.isShiftKeyDown() && pollen == null) {
             analyzer.set(FarmingEvolution.POLLEN, genome);
-            lines.add(Analysis.text("took", "Took the pollen of %s", Analysis.brief(genome)));
+            lines.add(Analysis.text("took", "Took the pollen of %s", Analysis.brief(genome)).withStyle(Readout.PRODUCT));
         } else if (player.isShiftKeyDown()) {
             PlantBlockEntity.Parents pair = PlantBlockEntity.Parents.of(genome, pollen, plant.environment(level));
             try {
                 pair.odds();
                 plant.setPollen(pollen);
-                lines.add(Analysis.text("pollinate", "Pollinated with %s", Analysis.brief(pollen)));
-                lines.addAll(Analysis.odds("seeds", "Odds of the seeds of this plant:", plant.parents(level).orElseThrow().odds()));
+                lines.add(Analysis.text("pollinate", "Pollinated with %s", Analysis.brief(pollen)).withStyle(Readout.PRODUCT));
+                PlantBlockEntity.Parents pollinated = plant.parents(level).orElseThrow();
+                lines.addAll(Analysis.odds("seeds", "Odds of the seeds of this plant:", pollinated.odds()));
+                lines.addAll(Analysis.climate(pollinated, true));
             } catch (IllegalArgumentException e) {
                 lines.add(refusal(e));
             }
@@ -76,8 +80,9 @@ public final class AnalyzerItem extends Item {
             lines.addAll(Analysis.individual("plant", genome));
             lines.add(Analysis.pollinatedBy(parents.get()));
             lines.addAll(Analysis.odds("seeds", "Odds of the seeds of this plant:", parents.get().odds()));
+            lines.addAll(Analysis.climate(parents.get(), true));
             if (pollen != null && !plant.pollen().filter(pollen::equals).isPresent()) {
-                lines.addAll(withPollen(genome, pollen, plant.environment(level)));
+                lines.addAll(withPollen(genome, pollen, plant.environment(level), false));
             }
         }
         send(player, lines);
@@ -100,11 +105,11 @@ public final class AnalyzerItem extends Item {
         List<Component> lines = new ArrayList<>();
         if (drop) {
             analyzer.remove(FarmingEvolution.POLLEN);
-            lines.add(Analysis.text("dropped", "Dropped the pollen"));
+            lines.add(Analysis.text("dropped", "Dropped the pollen").withStyle(Readout.LABEL));
         } else {
             lines.addAll(Analysis.individual("seed", seed));
             if (pollen != null) {
-                lines.addAll(withPollen(seed, pollen, PlantBlock.environmentAt(level, player.blockPosition())));
+                lines.addAll(withPollen(seed, pollen, PlantBlock.environmentAt(level, player.blockPosition()), true));
             }
         }
         send(player, lines);
@@ -128,15 +133,21 @@ public final class AnalyzerItem extends Item {
     /**
      * The odds of the offspring of the individual pollinated with the pollen under the
      * conditions, or why there are none. A seed in the hand is not planted yet: its odds are
-     * shown in the climate where the player stands.
+     * shown in the climate where the player stands. After the odds, whether a hybridization of
+     * the pair happens in that climate; the climate itself is named when {@code climateHeader},
+     * that is when no lines above named it already.
      */
-    private static List<Component> withPollen(Individual individual, Individual pollen, Environment environment) {
+    private static List<Component> withPollen(Individual individual, Individual pollen, Environment environment,
+            boolean climateHeader) {
+        PlantBlockEntity.Parents pair = PlantBlockEntity.Parents.of(individual, pollen, environment);
+        List<Component> lines = new ArrayList<>();
         try {
-            return Analysis.odds("with_pollen", "If pollinated with the analyzer's pollen:",
-                    PlantBlockEntity.Parents.of(individual, pollen, environment).odds());
+            lines.addAll(Analysis.odds("with_pollen", "If pollinated with the analyzer's pollen:", pair.odds()));
         } catch (IllegalArgumentException e) {
             return List.of(refusal(e));
         }
+        lines.addAll(Analysis.climate(pair, climateHeader));
+        return lines;
     }
 
     /**
@@ -149,7 +160,7 @@ public final class AnalyzerItem extends Item {
     }
 
     private static Component refusal(IllegalArgumentException e) {
-        return Analysis.text("refused", "These two cannot be crossed: %s", e.getMessage());
+        return Analysis.text("refused", "These two cannot be crossed: %s", e.getMessage()).withStyle(Readout.MISSING);
     }
 
     private static void send(Player player, List<Component> lines) {

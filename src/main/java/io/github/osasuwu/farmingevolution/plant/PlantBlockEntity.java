@@ -14,7 +14,9 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.slf4j.Logger;
@@ -60,6 +62,10 @@ public final class PlantBlockEntity extends BlockEntity {
     public void setGenome(@Nullable Individual genome) {
         this.genome = genome;
         setChanged();
+        if (level != null && !level.isClientSide()) {
+            // The client shows the genome through the breeder's goggles: send the change.
+            level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+        }
     }
 
     /** The genome of the pollen this plant was pollinated with; empty for a self-pollinating plant. */
@@ -156,6 +162,25 @@ public final class PlantBlockEntity extends BlockEntity {
         return GenomeCodec.saved(FarmingEvolution.BREEDING).parse(NbtOps.INSTANCE, tag.get(key))
                 .resultOrPartial(error -> LOGGER.error("Unreadable {} of the plant at {}: {}", what, getBlockPos(), error))
                 .orElse(null);
+    }
+
+    /**
+     * What the client learns of the plant: its genome, for the breeder's goggles (issue #90).
+     * The pollen stays on the server, where the analyzer reads it. The client reads the tag
+     * by {@link #loadAdditional}, so a missing genome clears the one it had.
+     */
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        CompoundTag tag = new CompoundTag();
+        if (genome != null) {
+            tag.put(GENOME_TAG, GenomeCodec.INDIVIDUAL.encodeStart(NbtOps.INSTANCE, genome).getOrThrow());
+        }
+        return tag;
+    }
+
+    @Override
+    public ClientboundBlockEntityDataPacket getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
     }
 
     @Override

@@ -67,6 +67,18 @@ public final class Breeding {
     }
 
     /**
+     * The hybridizations of pack data whose parents are the expressed species of the pair, in
+     * either order, in pack data order: those a cross of the two may undergo where their
+     * conditions hold. Whether they hold in a place is not asked here; the analyzer names each
+     * and says whether it holds where the pair crosses (issue #90).
+     */
+    public List<Hybridization> hybridizations(Individual first, Individual second) {
+        return data.hybridizations().stream()
+                .filter(hybridization -> hybridization.parents(first.species(), second.species()))
+                .toList();
+    }
+
+    /**
      * The variety whose product the individual gives: of the varieties of its species it fits,
      * the narrowest one, whose region lies inside the regions of all the others. Empty when it
      * fits none: the product is then the species' product of no variety.
