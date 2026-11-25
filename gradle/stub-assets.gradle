@@ -75,20 +75,12 @@ var generateStubAssets = tasks.register('generateStubAssets') {
         }
         json('blockstates/crop.json', [variants: cropStates])
 
-        // A bundle of fibre: strands across the item, tied in the middle.
-        def bundle = { String strand, String tie ->
-            [[strand] + (3..12).collectMany { i -> [[i, 15 - i], [i + 1, 15 - i], [i, 14 - i]] },
-             [tie, [7, 7], [8, 7], [7, 8], [8, 8], [6, 8], [9, 7]]]
-        }
+        // The fibres (wild_flax_fiber, fiber_flax_fiber, oil_flax_fiber, strong_flax) are no longer
+        // here: they are drawn from a grey template and palettes (issue #19, generateTextures).
         Map items = [
                 seeds           : [['7a5230', [5, 6], [6, 6], [9, 5], [10, 5], [7, 10], [8, 10], [4, 11], [11, 10]]],
                 wild_berries    : [['8e1f3c', [5, 7], [6, 7], [5, 8], [6, 8], [9, 6], [10, 6], [9, 7], [10, 7], [7, 10], [8, 10],
                                    [7, 11], [8, 11]], ['3d6b2a', [7, 4], [8, 5]]],
-                wild_flax_fiber : bundle('b8ab8a', '6b5a3a'),
-                fiber_flax_fiber: bundle('cdb37a', '6b5a3a'),
-                // Oil flax, the flax of warm dry places (issue #67): coarse brown strands.
-                oil_flax_fiber  : bundle('9a6a35', '4a3020'),
-                strong_flax     : bundle('e0c25a', '8a3b1f'),
                 // The analyzer: a cogwheel ring on a shaft handle, a lens in the middle.
                 analyzer        : [['8a8a80'] + column(7, 9, 14) + column(8, 9, 14),
                                    ['b08a50', [5, 3], [6, 2], [7, 2], [8, 2], [9, 2], [10, 3], [4, 4], [11, 4], [4, 5], [11, 5],

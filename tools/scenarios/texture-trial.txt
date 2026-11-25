@@ -1,0 +1,27 @@
+# Issue #19, the texture trial: four fibres drawn from one grey template (fiber_bundle) in four
+# palettes — wild_flax_fiber, fiber_flax_fiber, oil_flax_fiber (palettes of species) and
+# strong_flax (palette of a variety) — in the hotbar and in the open inventory, at a large GUI
+# scale so the pixels are seen. The shots are for the author, who accepts or rejects the look.
+# Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/texture-trial.txt
+command /time set day
+command /gamerule doDaylightCycle false
+command /clear @s
+command /give @s farmingevolution:wild_flax_fiber
+command /give @s farmingevolution:fiber_flax_fiber
+command /give @s farmingevolution:oil_flax_fiber
+command /give @s farmingevolution:strong_flax
+look 0 90
+guiscale 3
+slot 1
+shot texture-trial-hotbar
+inventory
+hoverat 5 5
+shot texture-trial-inventory
+# The tooltip names the item under the cursor: the textures are on the right items.
+hover 36
+shot texture-trial-inventory-wild
+hover 39
+shot texture-trial-inventory-strong
+slots
+close
+guiscale 0

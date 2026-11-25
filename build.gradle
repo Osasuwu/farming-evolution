@@ -187,6 +187,62 @@ neoForge.ideSyncTask generateModMetadata
 // Placeholder blockstates, models and textures, drawn at build time.
 apply from: 'gradle/stub-assets.gradle'
 
+// ---------------------------------------------------------------------------
+// Item textures from grey templates and palettes (issue #19; README.md, "Текстуры"). The
+// generator (source set textures) reads src/textures/textures.json and writes a PNG and an item
+// model per item into generated resources before processResources; the jar carries the output,
+// not the generator. Its tests (source set texturesTest) are a stage of verify.
+// ---------------------------------------------------------------------------
+
+sourceSets {
+    textures
+    texturesTest {
+        compileClasspath += sourceSets.textures.output
+        runtimeClasspath += sourceSets.textures.output
+    }
+}
+configurations {
+    texturesTestImplementation.extendsFrom texturesImplementation
+}
+dependencies {
+    texturesImplementation 'com.google.code.gson:gson:2.10.1'
+    texturesTestImplementation platform('org.junit:junit-bom:5.11.4')
+    texturesTestImplementation 'org.junit.jupiter:junit-jupiter'
+    texturesTestRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+var texturesData = layout.projectDirectory.file('src/textures/textures.json')
+var texturesDir = layout.buildDirectory.dir('generated/sources/textures')
+var generateTextures = tasks.register('generateTextures', JavaExec) {
+    group = 'build'
+    description = 'Draws the item textures from grey templates and palettes and writes their item models.'
+    classpath = sourceSets.textures.runtimeClasspath
+    mainClass = 'io.github.osasuwu.farmingevolution.textures.TextureGenerator'
+    inputs.file texturesData
+    outputs.dir texturesDir
+    args texturesData.asFile.absolutePath, texturesDir.get().asFile.absolutePath
+}
+sourceSets.main.resources.srcDir generateTextures
+neoForge.ideSyncTask generateTextures
+
+var texturesTest = tasks.register('texturesTest', Test) {
+    group = 'verification'
+    description = 'Tests the texture generator and finds its textures and models in the mod jar.'
+    testClassesDirs = sourceSets.texturesTest.output.classesDirs
+    classpath = sourceSets.texturesTest.runtimeClasspath
+    useJUnitPlatform()
+    var modJar = tasks.named('jar', Jar).flatMap { it.archiveFile }
+    inputs.file modJar
+    inputs.file texturesData
+    systemProperty 'farmingevolution.textures', texturesData.asFile.absolutePath
+    jvmArgumentProviders.add({ ["-Dfarmingevolution.modJar=${modJar.get().asFile.absolutePath}".toString()] } as CommandLineArgumentProvider)
+    testLogging {
+        events 'failed'
+        exceptionFormat 'short'
+        showStackTraces = false
+    }
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
@@ -298,6 +354,9 @@ tasks.register('verify') {
 
 // The breeding simulator (checks/build.gradle) is one more stage of the pipeline.
 tasks.named('verify') { dependsOn ':checks:simulateBreeding' }
+
+// The texture generator's tests (issue #19) are one more stage of the pipeline.
+tasks.named('verify') { dependsOn texturesTest }
 
 // The recipe graph stage: the GameTest server writes its recipes out on start (RecipeGraphDump
 // in the mod), and the check fails when an input of a required recipe is out of reach of the
