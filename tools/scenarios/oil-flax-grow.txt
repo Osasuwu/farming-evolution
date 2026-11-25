@@ -10,6 +10,7 @@ slot 6
 lookat -1500 -61 2000
 use
 # The analyzer (slot 2) on the young plant: species oil_flax, gives Oil Flax Fiber.
+# History: after #104 (slice 4) the analyzer's output is not guaranteed; the harvested fibre stays the check.
 slot 2
 lookat -1500 -60 2000
 use
