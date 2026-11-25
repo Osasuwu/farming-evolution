@@ -1,10 +1,11 @@
-# Issue #78 and checklist #31: text typed into JEI's search field; the jei action reads what JEI
-# finds and fails the scenario when a check does not hold. The removed prototype fibre
-# farmingevolution:fiber and hemp (only in the GameTest data) must not be found.
-# Caveat: the mod's items have no creative tab, so JEI lists none of them at all. Until they get
-# one, the lacks/none checks below pass whether or not the item exists; they prove the search
-# and the check work, not that fibre and hemp are gone from the game.
-# The search field is at the bottom right of the 1280x720 picture of runControl.
+# Issues #78 and #80, checklist #31: text typed into JEI's search field; the jei action reads what
+# JEI finds and fails the scenario when a check does not hold. JEI lists the items of the creative
+# tabs, and the mod's tab holds every item the mod registers (issue #80), so an item of the mod
+# that JEI does not find is not registered, and one that is missing from the tab fails a has-check
+# below. The removed prototype fibre farmingevolution:fiber and hemp (only in the GameTest data)
+# must not be found.
+# The search field is at the bottom right of the 1280x720 picture of runControl; a single item
+# found is the first of JEI's list, at 967 108, and a click on it opens its recipes.
 # Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/jei-search.txt
 close
 inventory
@@ -15,9 +16,33 @@ clickat 1070 672 right
 type cogwheel
 shot jei-search-cogwheel
 jei has create:cogwheel
+# The items of the mod, by the words of their names.
+clickat 1070 672 right
+type analyzer
+shot jei-search-analyzer
+jei has farmingevolution:analyzer
+clickat 967 108
+shot jei-list-analyzer-recipe
+key escape
+clickat 1070 672
+clickat 1070 672 right
+type seed store
+shot jei-search-seed-store
+jei has farmingevolution:seed_store
+clickat 967 108
+shot jei-list-seed-store-recipe
+key escape
+clickat 1070 672
+clickat 1070 672 right
+type seeds
+jei has farmingevolution:seeds
+clickat 1070 672 right
+type strong flax
+jei has farmingevolution:strong_flax
 clickat 1070 672 right
 type fiber
 shot jei-search-fiber
+jei has farmingevolution:strong_flax
 jei lacks farmingevolution:fiber
 clickat 1070 672 right
 type hemp

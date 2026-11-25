@@ -168,6 +168,7 @@ public final class FarmingEvolution {
         NeoForge.EVENT_BUS.addListener(RecipeGraphDump::onServerStarted);
         VanillaRemoval.register(modBus);
         SeedStore.register(modBus);
+        CreativeTab.register(modBus);
     }
 
     /**
