@@ -213,6 +213,27 @@ public final class FlaxInWorldGameTests {
     }
 
     /**
+     * Wild flax does not spread (#122, AC9): one plant in the middle of a lawn of grass stays
+     * the only one however long it ticks; the way to get it again is generation in new chunks.
+     */
+    @GameTest(template = "empty")
+    public static void wildFlaxOnGrassPlacesNoNeighbours(GameTestHelper helper) {
+        Block wildFlax = block("wild_flax");
+        BlockPos.betweenClosed(0, 1, 0, 4, 1, 4).forEach(pos -> helper.setBlock(pos, Blocks.GRASS_BLOCK));
+        BlockPos plant = new BlockPos(2, 2, 2);
+        helper.setBlock(plant, wildFlax);
+        for (int i = 0; i < 20000; i++) {
+            helper.randomTick(plant);
+        }
+        List<BlockPos> plants = positionsOf(helper, wildFlax, new BlockPos(0, 1, 0), new BlockPos(4, 3, 4));
+        if (!plants.equals(List.of(plant))) {
+            throw new GameTestAssertException("Expected the wild flax to stay the only one on the lawn, got " + plants);
+        }
+        helper.setBlock(plant, Blocks.AIR);
+        helper.succeed();
+    }
+
+    /**
      * World generation: every biome of the overworld has the patches of wild flax and of wild
      * berry bushes among its features, and a patch put on a lawn plants its block there.
      */
