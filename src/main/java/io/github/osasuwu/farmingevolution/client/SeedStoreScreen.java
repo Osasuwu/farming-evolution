@@ -269,7 +269,7 @@ public final class SeedStoreScreen extends AbstractContainerScreen<SeedStoreMenu
         Individual genome = entry.genome();
         // With the goggles on, the tooltip event has added the genome already.
         if (genome != null && (minecraft.player == null || !BreederGogglesItem.worn(minecraft.player))) {
-            lines.addAll(Math.min(1, lines.size()), Readout.genome(genome));
+            lines.addAll(Math.min(1, lines.size()), Readout.seed(genome));
         }
         lines.add(text("stored", "Stored: %s", Component.literal(String.valueOf(entry.count()))
                 .withStyle(ChatFormatting.WHITE)).withStyle(ChatFormatting.GRAY));
