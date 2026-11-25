@@ -71,11 +71,11 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
      * its species when it fits no variety. Every way of harvesting asks for the drops here, a
      * hand and a machine alike. A plant without a genome has no species and gives no product.
      *
-     * <p>The seeds of a ripe plant are its offspring: each seed is one cross of the plant's
-     * {@link PlantBlockEntity#parents parents}, the plant with itself (selection) or with the
-     * pollen the analyzer put on it (crossing), in the climate of the place where the plant
-     * grew, so its traits may move off the parents'. An unripe plant gives back the seed it
-     * grew from unchanged.
+     * <p>The seeds of a ripe plant are its offspring: each seed is one cross of one of the
+     * plant's {@link PlantBlockEntity#harvestPairs pairs}, taken at random — the plant with the
+     * pollen the analyzer put on it, else with a father the wind brought when it ripened, else
+     * with itself — in the climate of the place where the plant grew, so its traits may move off
+     * the parents'. An unripe plant gives back the seed it grew from unchanged.
      */
     @Override
     protected List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
@@ -85,7 +85,7 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
             return loot;
         }
         Individual genome = plant.genome().get();
-        PlantBlockEntity.Parents parents = plant.parents(params.getLevel()).orElseThrow();
+        List<PlantBlockEntity.Parents> pairs = plant.harvestPairs(params.getLevel());
         Random random = new Random(params.getLevel().random.nextLong());
         List<ItemStack> drops = new ArrayList<>();
         for (ItemStack stack : loot) {
@@ -95,6 +95,7 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
             }
             for (int i = 0; i < stack.getCount(); i++) {
                 ItemStack seed = stack.copyWithCount(1);
+                PlantBlockEntity.Parents parents = pairs.size() == 1 ? pairs.get(0) : pairs.get(random.nextInt(pairs.size()));
                 seed.set(FarmingEvolution.GENOME, parents.cross(random));
                 drops.add(seed);
             }
@@ -129,16 +130,23 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
      * gives the seed's components to the block entity either before this call (a player's
      * hand) or after it (an item placing its block directly); both orders end with the genome
      * of the seed.
+     *
+     * <p>The game calls this on the server for every change of state, growth included, so it is
+     * also where a plant that has just ripened remembers the pollen of its neighbours
+     * ({@link PlantBlockEntity#rememberWindPollen}); a plant that was ripe already does not.
      */
     @Override
     protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
         super.onPlace(state, level, pos, oldState, movedByPiston);
-        if (oldState.is(this)) {
-            return;
+        if (!oldState.is(this)) {
+            Individual genome = level.getData(FarmingEvolution.REMOVED_PLANTS).recall(level.getGameTime(), pos);
+            if (genome != null && level.getBlockEntity(pos) instanceof PlantBlockEntity plant && !plant.plantedFromSeed()) {
+                plant.setGenome(genome);
+            }
         }
-        Individual genome = level.getData(FarmingEvolution.REMOVED_PLANTS).recall(level.getGameTime(), pos);
-        if (genome != null && level.getBlockEntity(pos) instanceof PlantBlockEntity plant && !plant.plantedFromSeed()) {
-            plant.setGenome(genome);
+        boolean ripened = isMaxAge(state) && !(oldState.is(this) && isMaxAge(oldState));
+        if (ripened && !level.isClientSide() && level.getBlockEntity(pos) instanceof PlantBlockEntity plant) {
+            plant.rememberWindPollen(level);
         }
     }
 }
