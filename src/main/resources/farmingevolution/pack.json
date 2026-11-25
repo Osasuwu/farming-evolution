@@ -4,11 +4,14 @@
   ],
   "species": [
     {"id": "wild_flax", "wild": {"fiber_strength": 2}},
-    {"id": "fiber_flax", "dominant": true, "wild": {"fiber_strength": 5}}
+    {"id": "fiber_flax", "dominant": true, "wild": {"fiber_strength": 5}},
+    {"id": "oil_flax", "dominant": true, "wild": {"fiber_strength": 3}}
   ],
   "hybridizations": [
     {"parents": ["wild_flax", "wild_flax"], "result": "fiber_flax", "chance": 0.25,
-     "conditions": {"climate": {"temperature": {"min": 4, "max": 16}, "humidity": {"min": 65}}}}
+     "conditions": {"climate": {"temperature": {"min": 4, "max": 16}, "humidity": {"min": 65}}}},
+    {"parents": ["fiber_flax", "fiber_flax"], "result": "oil_flax", "chance": 0.1,
+     "conditions": {"climate": {"temperature": {"min": 20}, "humidity": {"max": 35}}}}
   ],
   "varieties": [
     {"id": "strong_flax", "species": "fiber_flax", "thresholds": {"fiber_strength": 7}}

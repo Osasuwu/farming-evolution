@@ -86,6 +86,8 @@ var generateStubAssets = tasks.register('generateStubAssets') {
                                    [7, 11], [8, 11]], ['3d6b2a', [7, 4], [8, 5]]],
                 wild_flax_fiber : bundle('b8ab8a', '6b5a3a'),
                 fiber_flax_fiber: bundle('cdb37a', '6b5a3a'),
+                // Oil flax, the flax of warm dry places (issue #67): coarse brown strands.
+                oil_flax_fiber  : bundle('9a6a35', '4a3020'),
                 strong_flax     : bundle('e0c25a', '8a3b1f'),
                 // The analyzer: a cogwheel ring on a shaft handle, a lens in the middle.
                 analyzer        : [['8a8a80'] + column(7, 9, 14) + column(8, 9, 14),

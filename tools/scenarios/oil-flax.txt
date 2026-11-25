@@ -1,0 +1,76 @@
+# Checklist #31, "Климат виден игроку" (issue #67): fiber_flax, the flax a wild flax gives,
+# gives oil_flax among its seeds in a warm dry place (-1500, 2000: about 30 °C, humidity 10 %),
+# and the analyzer shows its chance there; near the origin of the world (12 °C, 50 %) neither.
+# Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/oil-flax.txt
+# The seeds of the harvest are listed by "slots" at the end; plant one whose species is
+# oil_flax the same way to see it give Oil Flax Fiber.
+command /time set day
+command /gamerule doDaylightCycle false
+command /gamerule randomTickSpeed 0
+command /clear @s
+# The seeds a broken wild flax gives (fiber_flax, fibre strength 5) and the analyzer.
+command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"fiber_flax"},inactive:{id:"fiber_flax"}},fiber_strength:{active:5,inactive:5}}}] 16
+command /give @s farmingevolution:analyzer
+# Near the origin: one plant, the analyzer shows only fiber_flax among the odds.
+tp 10.5 -60 8.5 0 30
+command /setblock 10 -61 10 minecraft:farmland
+slot 1
+lookat 10 -61 10
+use
+slot 2
+lookat 10 -60 10
+use
+shot oil-flax-origin-analyzer
+# The warm dry place: a row of six plants on farmland, one of them under the analyzer.
+tp -1500.5 -60 1998.5 0 30
+command /fill -1503 -61 2000 -1498 -61 2000 minecraft:farmland
+# Water behind the row: dry farmland turns to dirt under fast random ticks and drops the plants.
+command /fill -1503 -61 2001 -1498 -61 2001 minecraft:water
+slot 1
+lookat -1503 -61 2000
+use
+lookat -1502 -61 2000
+use
+lookat -1501 -61 2000
+use
+lookat -1500 -61 2000
+use
+lookat -1499 -61 2000
+use
+lookat -1498 -61 2000
+use
+slot 2
+lookat -1501 -60 2000
+use
+shot oil-flax-warm-dry-analyzer
+# Ripen them: fast random ticks for a while, then back to none.
+command /gamerule randomTickSpeed 3000
+wait 200
+command /gamerule randomTickSpeed 0
+shot oil-flax-warm-dry-ripe
+# Harvest by hand with an empty hand, then walk the row to pick up the seeds and the fibre.
+slot 3
+lookat -1503 -60 2000
+mine 10
+lookat -1502 -60 2000
+mine 10
+lookat -1501 -60 2000
+mine 10
+lookat -1500 -60 2000
+mine 10
+lookat -1499 -60 2000
+mine 10
+lookat -1498 -60 2000
+mine 10
+drops
+tp -1502.5 -60 2000.5
+wait 10
+tp -1500.5 -60 2000.5
+wait 10
+tp -1498.5 -60 2000.5
+wait 10
+drops
+inventory
+shot oil-flax-harvest-inventory
+slots
+close
