@@ -1,0 +1,40 @@
+{
+  "_comment": [
+    "Item textures of the mod (issue #19), drawn by TextureGenerator at build time: README.md, section Текстуры.",
+    "A template is a grey image given as rows of keys: '.' is a transparent pixel, a digit n is the n-th grey of the template.",
+    "A palette gives the colour of every grey: its n-th colour replaces the n-th grey. An item is one template in one palette.",
+    "Greys of fiber_bundle: 1 strand shadow, 2 strand, 3 strand highlight, 4 tie, 5 tie highlight."
+  ],
+  "templates": {
+    "fiber_bundle": [
+      "................",
+      "............3...",
+      "...........3.3..",
+      "..........323.1.",
+      ".........32321..",
+      "........32321...",
+      "......442321....",
+      "......54421.....",
+      ".....32544......",
+      "....323254......",
+      "...32321........",
+      "..32321.........",
+      ".3.321..........",
+      "..3.1...........",
+      "...1............",
+      "................"
+    ]
+  },
+  "palettes": {
+    "wild_flax": ["6e6650", "9a9070", "c4b996", "4a3a26", "6b5a3a"],
+    "fiber_flax": ["8a7438", "bfa35a", "e2cf8e", "4a3a26", "6b5a3a"],
+    "oil_flax": ["5a3a1c", "8a5e30", "b08450", "2e1e12", "4a3020"],
+    "strong_flax": ["9a7a20", "d0aa38", "f2dc7a", "6a2a14", "9a4424"]
+  },
+  "items": [
+    {"item": "wild_flax_fiber", "template": "fiber_bundle", "palette": "wild_flax"},
+    {"item": "fiber_flax_fiber", "template": "fiber_bundle", "palette": "fiber_flax"},
+    {"item": "oil_flax_fiber", "template": "fiber_bundle", "palette": "oil_flax"},
+    {"item": "strong_flax", "template": "fiber_bundle", "palette": "strong_flax"}
+  ]
+}
