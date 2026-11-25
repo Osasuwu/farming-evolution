@@ -167,7 +167,9 @@ public final class PlantBlockEntity extends BlockEntity {
     /**
      * What the client learns of the plant: its genome, for the breeder's goggles (issue #90).
      * The pollen stays on the server, where the analyzer reads it. The client reads the tag
-     * by {@link #loadAdditional}, so a missing genome clears the one it had.
+     * by {@link #loadAdditional}. A plant in play never loses its genome, so the update never
+     * has to clear one: NeoForge skips an empty update packet, and a genome removed by a
+     * command would stay on the client until its chunk loads again.
      */
     @Override
     public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
