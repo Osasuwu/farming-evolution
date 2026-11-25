@@ -70,10 +70,10 @@ JEI (со своей библиотекой MezzConfig, лицензия MIT) е
 
 ```
 Breeding simulation (<путь>/checks/breeding-simulation.json):
-  variety strong_fiber, method selection: median 10 generations (50 min), worst 32 generations (160 min); 1000 of 1000 lines reached the thresholds within 40 generations
-  variety strong_fiber, method crossing: median 8 generations (40 min), worst 14 generations (70 min); 1000 of 1000 lines reached the thresholds within 40 generations
-  requirement strong_fiber, method selection: variety strong_fiber, median 10 generations (50 min), worst 32 generations (160 min)
-  requirement strong_fiber, method crossing: variety strong_fiber, median 8 generations (40 min), worst 14 generations (70 min)
+  variety strong_fiber, method selection: median 10 generations (90 min), worst 32 generations (288 min); 1000 of 1000 lines reached the thresholds within 40 generations
+  variety strong_fiber, method crossing: median 8 generations (72 min), worst 14 generations (126 min); 1000 of 1000 lines reached the thresholds within 40 generations
+  requirement strong_fiber, method selection: variety strong_fiber, median 10 generations (90 min), worst 32 generations (288 min)
+  requirement strong_fiber, method crossing: variety strong_fiber, median 8 generations (72 min), worst 14 generations (126 min)
 Gaps between varieties:
   species flax: no variety for fiber_strength 1..6
 ```
@@ -308,6 +308,24 @@ PowerShell 5.1 с кодовой страницей OEM вывод через к
 [REVIEW.md](REVIEW.md). Соглашение Minecraft в CI тоже принимает человек: проверка `verify`
 красная, пока в настройках репозитория нет переменной Actions `MINECRAFT_EULA` со значением
 `true`. Ревью нужен секрет `CLAUDE_CODE_OAUTH_TOKEN`.
+
+## Настройки мода
+
+Мод пишет свои настройки в `config/farmingevolution-common.toml` каталога игры (у выделенного
+сервера — его каталога). Файл появляется со значениями по умолчанию при первом запуске; после
+правки файла значение точно действует со следующего запуска (живую перезагрузку файла
+NeoForge не проверяли).
+
+Темп роста растений мода (задача #87) — одно значение `plantGenerationMinutes`, по умолчанию
+`9.0`: сколько минут игры в среднем растение мода растёт от посева до спелого на политой пашне
+(влажность больше 0: вода не дальше 4 блоков или дождь) при обычной скорости случайных тиков (`randomTickSpeed`
+3). На сухой пашне растение растёт в 1,5 раза дольше, в среднем 13,5 минуты. Других условий роста
+у растения мода нет: соседние грядки и ряды, в отличие от пшеницы, его не ускоряют и не замедляют.
+Как и пшеница, оно растёт только при свете не ниже 9 (ночью без факелов стоит), быстрее при
+большем `randomTickSpeed`, а костная мука сразу добавляет 2–5 стадий. Ванильные культуры
+настройка не трогает. Код — `plant/GrowthPace.java`, расчёт: блок получает случайный тик в среднем
+раз в 4096 / 3 игровых тиков, поэтому поколение в `m` минут — это `m · 1200 · 3 / 4096` случайных
+тиков, и каждый тик в среднем добавляет растению `7 / это число` стадий.
 
 ## Декомпилированные исходники Minecraft
 

@@ -1,5 +1,6 @@
 package io.github.osasuwu.farmingevolution.plant;
 
+import io.github.osasuwu.farmingevolution.Config;
 import io.github.osasuwu.farmingevolution.FarmingEvolution;
 import io.github.osasuwu.farmingevolution.breeding.Environment;
 import io.github.osasuwu.farmingevolution.breeding.Individual;
@@ -7,16 +8,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.neoforged.neoforge.common.CommonHooks;
 
 /**
  * A growing plant with a genome. The block is an ordinary crop, which is what harvesting
@@ -30,6 +35,29 @@ public final class PlantBlock extends CropBlock implements EntityBlock {
     @Override
     protected ItemLike getBaseSeedId() {
         return FarmingEvolution.SEEDS;
+    }
+
+    /**
+     * Growth at the pace of the mod ({@link GrowthPace}), not of wheat: wheat counts the
+     * farmland around it and the crops in its rows, a plant of the mod only whether the farmland
+     * under it is watered. As wheat, it grows only in light 9 or more, and other mods may stop or
+     * watch its growth through the crop growth events.
+     */
+    @Override
+    protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+        if (!level.isAreaLoaded(pos, 1) || level.getRawBrightness(pos, 0) < 9 || isMaxAge(state)) {
+            return;
+        }
+        BlockPos soil = pos.below();
+        boolean watered = level.getBlockState(soil).isFertile(level, soil);
+        int stages = GrowthPace.stages(
+                GrowthPace.stagesPerRandomTick(Config.GENERATION_MINUTES.get(), watered), random);
+        // As in CropBlock: the event may deny growth, or force a stage the chance did not give.
+        if (CommonHooks.canCropGrow(level, pos, state, stages > 0)) {
+            int age = Math.min(getAge(state) + Math.max(stages, 1), getMaxAge());
+            level.setBlock(pos, getStateForAge(age), Block.UPDATE_CLIENTS);
+            CommonHooks.fireCropGrowPost(level, pos, state);
+        }
     }
 
     @Override
