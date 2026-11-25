@@ -45,7 +45,9 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.material.PushReaction;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
@@ -158,7 +160,8 @@ public final class FarmingEvolution {
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<RemovedPlants>> REMOVED_PLANTS =
             ATTACHMENTS.register("removed_plants", () -> AttachmentType.builder(RemovedPlants::new).build());
 
-    public FarmingEvolution(IEventBus modBus) {
+    public FarmingEvolution(IEventBus modBus, ModContainer container) {
+        container.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
         ITEMS.register(modBus);
         BLOCKS.register(modBus);
         BLOCK_ENTITIES.register(modBus);
