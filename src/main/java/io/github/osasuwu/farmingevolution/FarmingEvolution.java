@@ -13,6 +13,7 @@ import io.github.osasuwu.farmingevolution.climate.ClimateSource;
 import io.github.osasuwu.farmingevolution.climate.GradientClimate;
 import io.github.osasuwu.farmingevolution.plant.AnalyzerItem;
 import io.github.osasuwu.farmingevolution.plant.GenomeCodec;
+import io.github.osasuwu.farmingevolution.plant.GeneratedPack;
 import io.github.osasuwu.farmingevolution.plant.PlantBlock;
 import io.github.osasuwu.farmingevolution.plant.PlantBlockEntity;
 import io.github.osasuwu.farmingevolution.plant.Products;
@@ -23,6 +24,7 @@ import io.github.osasuwu.farmingevolution.plant.WildFlaxBlock;
 import io.github.osasuwu.farmingevolution.recipe.RecipeGraphDump;
 import io.github.osasuwu.farmingevolution.store.SeedStore;
 import io.github.osasuwu.farmingevolution.vanilla.VanillaRemoval;
+import io.github.osasuwu.farmingevolution.village.Villagers;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -32,10 +34,12 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemNameBlockItem;
@@ -160,6 +164,29 @@ public final class FarmingEvolution {
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<RemovedPlants>> REMOVED_PLANTS =
             ATTACHMENTS.register("removed_plants", () -> AttachmentType.builder(RemovedPlants::new).build());
 
+    /**
+     * The chance of a seed or a wild berry to raise the composter's level: that of wheat seeds
+     * and sweet berries.
+     */
+    private static final float SEED_COMPOST_CHANCE = 0.3F;
+
+    /** The chance of a product to raise the composter's level: that of wheat. */
+    private static final float PRODUCT_COMPOST_CHANCE = 0.65F;
+
+    /**
+     * The data of {@link #PACK} in the game: the requirement tags, and the compost values of the
+     * seeds, the wild berries and every product.
+     */
+    public static final GeneratedPack GENERATED = new GeneratedPack(REQUIREMENTS.tags(), compostables());
+
+    private static Map<ResourceLocation, Float> compostables() {
+        Map<ResourceLocation, Float> chances = new LinkedHashMap<>();
+        chances.put(SEEDS.getId(), SEED_COMPOST_CHANCE);
+        chances.put(WILD_BERRIES.getId(), SEED_COMPOST_CHANCE);
+        PRODUCTS.ids().forEach(id -> chances.put(id, PRODUCT_COMPOST_CHANCE));
+        return chances;
+    }
+
     public FarmingEvolution(IEventBus modBus, ModContainer container) {
         container.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
         ITEMS.register(modBus);
@@ -167,11 +194,12 @@ public final class FarmingEvolution {
         BLOCK_ENTITIES.register(modBus);
         DATA_COMPONENTS.register(modBus);
         ATTACHMENTS.register(modBus);
-        modBus.addListener(REQUIREMENTS::addPack);
+        modBus.addListener(GENERATED::addPack);
         NeoForge.EVENT_BUS.addListener(RecipeGraphDump::onServerStarted);
         VanillaRemoval.register(modBus);
         SeedStore.register(modBus);
         CreativeTab.register(modBus);
+        Villagers.register();
     }
 
     /**
