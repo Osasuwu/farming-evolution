@@ -1,6 +1,6 @@
 # Checklist #31, "Хранилище семян": seeds go in with a right click holding them; a right click
-# with an empty hand steps the condition forward, Shift + right click back; the condition is
-# written above the hotbar (actionbar lines of the replies).
+# with an empty hand opens the window. In it the arrows step the condition, the grid lists the
+# seeds by genome with their count. Pixel points assume GUI scale 2 and the 1280x720 frame.
 # Run with gradlew runControl started: java tools/ClientControl.java --scenario tools/scenarios/seed-store.txt
 command /time set day
 command /gamerule doDaylightCycle false
@@ -8,6 +8,7 @@ command /clear @s
 tp 4.5 -60 0.5 0 30
 command /give @s farmingevolution:seed_store
 command /give @s farmingevolution:seeds[farmingevolution:genome={sex:"none",chromosomes:{species:{active:{id:"wild_flax"},inactive:{id:"wild_flax"}},fiber_strength:{active:2,inactive:2}}}] 16
+guiscale 2
 # Place the store on the grass three blocks ahead (hotbar slot 1).
 slot 1
 lookat 4 -61 3
@@ -16,9 +17,15 @@ use
 slot 2
 lookat 4 -60 3
 use
-# Empty hand (slot 3): next condition, next again, then Shift: back one.
+# Empty hand (slot 3): the window opens.
 slot 3
 use
-use
-use shift
+# Next condition, next again, then back one.
+clickat 806 188
+clickat 806 188
+clickat 474 188
+hoverat 100 650
 shot seed-store-condition
+# The seed's tooltip: genome, count, whether it passes.
+hoverat 480 268
+shot seed-store-tooltip

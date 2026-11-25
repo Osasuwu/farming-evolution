@@ -2,6 +2,8 @@ package io.github.osasuwu.farmingevolution.store;
 
 import io.github.osasuwu.farmingevolution.FarmingEvolution;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.world.flag.FeatureFlags;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.SoundType;
@@ -21,8 +23,8 @@ import net.neoforged.neoforge.registries.DeferredRegister;
  * The seed store (issue #30): a block that keeps seeds, each genome in its own slot, and lets
  * out only the seeds that pass the condition the player has set. Hoppers, Create funnels and
  * other mods reach it through the item capability of NeoForge, so the mod does not compile
- * against Create. See {@link SeedStoreBlock} for the player's side and
- * {@link SeedStoreBlockEntity} for the storage.
+ * against Create. See {@link SeedStoreBlock} for the player's side, {@link SeedStoreMenu} for
+ * its window (issue #91) and {@link SeedStoreBlockEntity} for the storage.
  */
 public final class SeedStore {
     private static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(FarmingEvolution.MOD_ID);
@@ -44,6 +46,12 @@ public final class SeedStore {
             BLOCK_ENTITIES.register("seed_store",
                     () -> BlockEntityType.Builder.of(SeedStoreBlockEntity::new, BLOCK.get()).build(null));
 
+    private static final DeferredRegister<MenuType<?>> MENUS = DeferredRegister.create(Registries.MENU, FarmingEvolution.MOD_ID);
+
+    /** The window of the store (issue #91); the client draws it with client.SeedStoreScreen. */
+    public static final DeferredHolder<MenuType<?>, MenuType<SeedStoreMenu>> MENU =
+            MENUS.register("seed_store", () -> new MenuType<>(SeedStoreMenu::new, FeatureFlags.DEFAULT_FLAGS));
+
     private SeedStore() {
     }
 
@@ -51,6 +59,7 @@ public final class SeedStore {
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         BLOCK_ENTITIES.register(modBus);
+        MENUS.register(modBus);
         modBus.addListener(SeedStore::registerCapabilities);
     }
 

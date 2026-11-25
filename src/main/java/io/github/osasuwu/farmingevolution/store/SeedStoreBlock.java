@@ -12,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -27,14 +28,16 @@ import net.neoforged.neoforge.items.ItemHandlerHelper;
  * The block of the seed store. What the player does with it:
  *
  * <ul>
- * <li>use with an empty hand: the next condition; sneaking: the previous one;
- * <li>use with seeds in the hand: puts the stack in, as much as fits;
- * <li>every use shows a line above the hotbar: the condition and how many seeds pass it.
+ * <li>use with an empty hand, sneaking or not: opens the window ({@link SeedStoreMenu}, issue
+ * #91), where the player sees the seeds, takes and puts them and sets the condition;
+ * <li>use with seeds in the hand: puts the stack in, as much as fits, and shows a line above
+ * the hotbar: the condition and how many seeds pass it;
+ * <li>use with any other item: the item's own use, e.g. a hopper is placed against the store.
  * </ul>
  *
- * Seeds come out through the item capability only: a hopper or a Create funnel under or beside
- * it. There is no screen of its own; the line above the hotbar is a message from the server.
- * Breaking the block drops what it holds.
+ * Automation takes seeds out through the item capability only, and only those that pass the
+ * condition: a hopper or a Create funnel under or beside it. Breaking the block drops what it
+ * holds.
  */
 public final class SeedStoreBlock extends BaseEntityBlock {
     private static final MapCodec<SeedStoreBlock> CODEC = simpleCodec(SeedStoreBlock::new);
@@ -81,8 +84,8 @@ public final class SeedStoreBlock extends BaseEntityBlock {
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
             BlockHitResult hit) {
         if (!level.isClientSide && level.getBlockEntity(pos) instanceof SeedStoreBlockEntity store) {
-            store.step(player.isSecondaryUseActive());
-            player.displayClientMessage(status(store), true);
+            player.openMenu(new SimpleMenuProvider(
+                    (id, inventory, opener) -> new SeedStoreMenu(id, inventory, store), getName()));
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
@@ -114,7 +117,7 @@ public final class SeedStoreBlock extends BaseEntityBlock {
     }
 
     /** The condition in words: one translation key per kind, with the variety's product named. */
-    static Component describe(Selection selection) {
+    public static Component describe(Selection selection) {
         String[] parts = selection.id().split("/");
         String key = "block.farmingevolution.seed_store.selection." + parts[0];
         return switch (parts[0]) {

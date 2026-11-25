@@ -52,6 +52,7 @@ final class ControlActions {
     private static final Field MOUSE_Y = GameText.field(MouseHandler.class, "ypos");
     private static final Field MOUSE_GRABBED = GameText.field(MouseHandler.class, "mouseGrabbed");
     private static final Method MOUSE_PRESS = method(MouseHandler.class, "onPress", long.class, int.class, int.class, int.class);
+    private static final Method MOUSE_SCROLL = method(MouseHandler.class, "onScroll", long.class, double.class, double.class);
     private static final Method CHAR_TYPED = method(KeyboardHandler.class, "charTyped", long.class, int.class, int.class);
 
     private ControlActions() {
@@ -358,6 +359,19 @@ final class ControlActions {
                     }
                 }), shot, Extra.NONE, false, true);
             }
+            case "scrollat" -> {
+                count(args, 3);
+                double x = number(args, 0, "x");
+                double y = number(args, 1, "y");
+                double notches = number(args, 2, "notches");
+                yield new Action(line, once(mc -> {
+                    if (mc.screen == null) {
+                        throw new ActionException("no screen is open");
+                    }
+                    pointAtPixel(mc, x, y);
+                    mouseScroll(mc, notches);
+                }), shot, Extra.NONE, false, true);
+            }
             case "command" -> {
                 if (rest.isEmpty()) {
                     throw new ActionException("command takes the command text, e.g. command /time set day");
@@ -653,6 +667,20 @@ final class ControlActions {
         try {
             MOUSE_PRESS.invoke(mc.mouseHandler, window, button, GLFW.GLFW_PRESS, 0);
             MOUSE_PRESS.invoke(mc.mouseHandler, window, button, GLFW.GLFW_RELEASE, 0);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException(e);
+        } catch (InvocationTargetException e) {
+            throw new IllegalStateException(e.getCause());
+        }
+    }
+
+    /** Turns the wheel at the pointer through the window's scroll callback: up is positive, as GLFW has it. */
+    /** Scrolls one notch at a time, as a wheel does: screens read the sign of a scroll, not its size. */
+    private static void mouseScroll(Minecraft mc, double notches) {
+        try {
+            for (int i = 0; i < Math.abs((int) notches); i++) {
+                MOUSE_SCROLL.invoke(mc.mouseHandler, mc.getWindow().getWindow(), 0.0, Math.signum(notches));
+            }
         } catch (IllegalAccessException e) {
             throw new IllegalStateException(e);
         } catch (InvocationTargetException e) {
