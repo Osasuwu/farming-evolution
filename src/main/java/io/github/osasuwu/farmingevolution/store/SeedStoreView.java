@@ -2,15 +2,21 @@ package io.github.osasuwu.farmingevolution.store;
 
 import io.github.osasuwu.farmingevolution.FarmingEvolution;
 import io.github.osasuwu.farmingevolution.breeding.Allele;
-import io.github.osasuwu.farmingevolution.breeding.Breeding;
 import io.github.osasuwu.farmingevolution.breeding.Chromosome;
 import io.github.osasuwu.farmingevolution.breeding.ChromosomeType;
 import io.github.osasuwu.farmingevolution.breeding.Individual;
+import io.github.osasuwu.farmingevolution.breeding.Selection;
+import io.github.osasuwu.farmingevolution.plant.BreederGogglesItem;
+import io.github.osasuwu.farmingevolution.plant.Readout;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -51,20 +57,13 @@ public final class SeedStoreView {
 
         /** The expressed value of a numeric trait, or empty when the seed has no such trait. */
         public Optional<Integer> trait(String trait) {
-            return allele(trait, true);
-        }
-
-        private Optional<Integer> allele(String trait, boolean expressed) {
             Individual genome = genome();
             if (genome == null) {
                 return Optional.empty();
             }
             Chromosome chromosome = genome.genome().get(trait);
-            if (chromosome == null) {
-                return Optional.empty();
-            }
-            Allele allele = expressed ? chromosome.active() : chromosome.inactive();
-            return allele instanceof Allele.Numeric numeric ? Optional.of(numeric.value()) : Optional.empty();
+            return chromosome != null && chromosome.active() instanceof Allele.Numeric numeric
+                    ? Optional.of(numeric.value()) : Optional.empty();
         }
     }
 
@@ -112,9 +111,11 @@ public final class SeedStoreView {
 
     /**
      * The order of the genomes. Descending turns over the key only; ties are always broken the
-     * same way, by species, then by every numeric trait (expressed, then carried), then by the
-     * carried species and the count, so the order does not jump between two refreshes. Seeds
-     * without a genome, and with a trait sort the seeds without the trait, go last either way.
+     * same way, by the expressed species, then by the expressed value of every numeric trait,
+     * then by the count and the first slot, so the order does not jump between two refreshes.
+     * The carried allele breaks no tie (issue #121): genomes that differ only in it keep the
+     * order of their slots. Seeds without a genome, and with a trait sort the seeds without the
+     * trait, go last either way.
      *
      * @param trait the trait of {@link Key#TRAIT}; ignored by the other keys
      */
@@ -147,19 +148,9 @@ public final class SeedStoreView {
     private static Comparator<Entry> ties() {
         Comparator<Entry> ties = Comparator.comparing(entry -> entry.species().orElse(""));
         for (String trait : traits()) {
-            ties = ties.thenComparingInt(entry -> entry.trait(trait).orElse(0))
-                    .thenComparingInt(entry -> entry.allele(trait, false).orElse(0));
+            ties = ties.thenComparingInt(entry -> entry.trait(trait).orElse(0));
         }
-        return ties.thenComparing(SeedStoreView::carriedSpecies).thenComparingInt(Entry::count);
-    }
-
-    private static String carriedSpecies(Entry entry) {
-        Individual genome = entry.genome();
-        if (genome == null) {
-            return "";
-        }
-        Chromosome species = genome.genome().get(Breeding.SPECIES);
-        return species != null && species.inactive() instanceof Allele.Named named ? named.id() : "";
+        return ties.thenComparingInt(Entry::count).thenComparingInt(Entry::slot);
     }
 
     /** The numeric traits of pack data, in its order: what a trait filter or sort can name. */
@@ -217,6 +208,36 @@ public final class SeedStoreView {
             entries.add(new Entry(firsts.get(i), groups.get(i)[1], groups.get(i)[0]));
         }
         return entries;
+    }
+
+    /**
+     * The tooltip of a cell of the window: the lines of the seed's own tooltip, with the genome
+     * under the name as the goggles show it, then how many seeds the store holds, whether they
+     * pass the condition and how to take them. With the goggles on, the seed's tooltip has the
+     * genome already ({@link BreederGogglesItem#onTooltip}), so it is not added twice.
+     *
+     * @param itemLines the tooltip of the cell's seed, as the game makes it for this player
+     * @param player the player looking, or null when there is none
+     */
+    public static List<Component> tooltip(List<Component> itemLines, Entry entry, @Nullable Player player,
+            Selection selection) {
+        List<Component> lines = new ArrayList<>(itemLines);
+        Individual genome = entry.genome();
+        if (genome != null && (player == null || !BreederGogglesItem.worn(player))) {
+            lines.addAll(Math.min(1, lines.size()), Readout.seed(genome));
+        }
+        lines.add(text("stored", "Stored: %s", Component.literal(String.valueOf(entry.count()))
+                .withStyle(ChatFormatting.WHITE)).withStyle(ChatFormatting.GRAY));
+        lines.add(SeedStoreBlockEntity.passes(selection, entry.stack())
+                ? text("passes", "Passes the condition").withStyle(ChatFormatting.GREEN)
+                : text("held", "Held by the condition").withStyle(ChatFormatting.RED));
+        lines.add(text("take_hint", "Click: a stack · Right-click: half · Shift-click: to inventory")
+                .withStyle(ChatFormatting.DARK_GRAY));
+        return lines;
+    }
+
+    private static MutableComponent text(String key, String fallback, Object... args) {
+        return Component.translatableWithFallback("screen." + FarmingEvolution.MOD_ID + ".seed_store." + key, fallback, args);
     }
 
     /** The entries the filter passes, in the order of the sort. */

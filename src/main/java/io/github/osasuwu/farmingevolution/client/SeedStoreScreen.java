@@ -1,9 +1,7 @@
 package io.github.osasuwu.farmingevolution.client;
 
 import io.github.osasuwu.farmingevolution.FarmingEvolution;
-import io.github.osasuwu.farmingevolution.breeding.Individual;
 import io.github.osasuwu.farmingevolution.breeding.Selection;
-import io.github.osasuwu.farmingevolution.plant.BreederGogglesItem;
 import io.github.osasuwu.farmingevolution.plant.Readout;
 import io.github.osasuwu.farmingevolution.store.SeedStore;
 import io.github.osasuwu.farmingevolution.store.SeedStoreBlock;
@@ -265,19 +263,7 @@ public final class SeedStoreScreen extends AbstractContainerScreen<SeedStoreMenu
     }
 
     private List<Component> entryTooltip(Entry entry) {
-        List<Component> lines = new ArrayList<>(getTooltipFromItem(minecraft, entry.stack()));
-        Individual genome = entry.genome();
-        // With the goggles on, the tooltip event has added the genome already.
-        if (genome != null && (minecraft.player == null || !BreederGogglesItem.worn(minecraft.player))) {
-            lines.addAll(Math.min(1, lines.size()), Readout.seed(genome));
-        }
-        lines.add(text("stored", "Stored: %s", Component.literal(String.valueOf(entry.count()))
-                .withStyle(ChatFormatting.WHITE)).withStyle(ChatFormatting.GRAY));
-        lines.add(SeedStoreBlockEntity.passes(selection(), entry.stack())
-                ? text("passes", "Passes the condition").withStyle(ChatFormatting.GREEN)
-                : text("held", "Held by the condition").withStyle(ChatFormatting.RED));
-        lines.add(hint("take_hint", "Click: a stack · Right-click: half · Shift-click: to inventory"));
-        return lines;
+        return SeedStoreView.tooltip(getTooltipFromItem(minecraft, entry.stack()), entry, minecraft.player, selection());
     }
 
     @Override
