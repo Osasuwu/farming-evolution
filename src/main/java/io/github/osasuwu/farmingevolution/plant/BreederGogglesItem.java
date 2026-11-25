@@ -18,8 +18,9 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 /**
  * The breeder's goggles, the equipment of the first look at a plant (CONCEPT.md, "Методы
  * селекции"), after the engineer's goggles of Create. Worn on the head, they show the player
- * what the eye can tell: the plant looked at (species with both alleles, product, ripeness),
- * the climate of the player's place, and the genome of a seed in its tooltip. The odds of the
+ * what the eye can tell: the plant looked at (the species and the expressed value of each
+ * trait, product, ripeness), the two numbers of the climate of the player's place, and the
+ * expressed genome of a seed in its tooltip. The carried allele is not theirs (issue #121). The odds of the
  * offspring are not theirs: those are the analyzer's.
  *
  * <p>The HUD is drawn by the client (client.GogglesHud); what it draws is {@link Readout}.

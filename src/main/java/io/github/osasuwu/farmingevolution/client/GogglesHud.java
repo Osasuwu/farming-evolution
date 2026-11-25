@@ -62,10 +62,7 @@ public final class GogglesHud {
         }
         Font font = minecraft.font;
 
-        List<Component> climate = new ArrayList<>();
-        climate.add(Component.translatableWithFallback("goggles." + FarmingEvolution.MOD_ID + ".climate_header", "Climate here")
-                .withStyle(Readout.HEADER));
-        climate.addAll(Readout.climate(FarmingEvolution.CLIMATE.at(minecraft.level, player.blockPosition())));
+        List<Component> climate = Readout.climatePanel(FarmingEvolution.CLIMATE.at(minecraft.level, player.blockPosition()));
         panel(graphics, font, climate, MARGIN, MARGIN);
 
         HitResult hit = minecraft.hitResult;

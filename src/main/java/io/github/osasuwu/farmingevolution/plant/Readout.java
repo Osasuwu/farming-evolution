@@ -23,7 +23,8 @@ import net.minecraft.world.level.block.state.BlockState;
  * <p>The lines are made wherever the goggles are drawn, on the client; nothing here reads a
  * client class, so the server can make them too (the GameTests do). The colours are the ones
  * the analyzer uses for the same parts: a name of a chromosome or reading in grey, the
- * expressed allele in yellow, the carried one in gold, a product in green.
+ * expressed allele in yellow, a product in green. The goggles show the expressed allele alone
+ * (issue #121); the carried one, in gold, is the analyzer's, a debug tool.
  */
 public final class Readout {
     /** A header: what a block of lines is about. */
@@ -50,62 +51,65 @@ public final class Readout {
     }
 
     /**
-     * The plant looked at: the species with both alleles, the product a ripe plant gives and
-     * how ripe it is. A plant without a genome says so and nothing else.
+     * The plant looked at: the expressed value of every chromosome, the species first, then
+     * the product a ripe plant gives and how ripe it is. A plant without a genome says so and
+     * nothing else.
      */
     public static List<Component> plant(PlantBlockEntity plant) {
         if (plant.genome().isEmpty()) {
             return List.of(text("no_genome", "no genome").withStyle(MISSING));
         }
         Individual genome = FarmingEvolution.BREEDING.restore(plant.genome().get(), replaced -> { });
-        List<Component> lines = new ArrayList<>();
-        Chromosome species = genome.genome().get(Breeding.SPECIES);
-        if (species != null) {
-            lines.add(chromosome(Breeding.SPECIES, species));
-        }
+        List<Component> lines = new ArrayList<>(expressed(genome));
         lines.add(text("product", "gives %s", product(genome)).withStyle(LABEL));
         lines.add(ripeness(plant.getBlockState()));
         return lines;
     }
 
     /**
-     * What the goggles show of the plant looked at, as its panel in the HUD has it: the lines of
-     * {@link #plant} and, under a plant with a genome, the {@link #legend} of its alleles.
+     * What the goggles show of the plant looked at, as its panel in the HUD has it under its
+     * header: the lines of {@link #plant}.
      */
     public static List<Component> plantPanel(PlantBlockEntity plant) {
-        List<Component> lines = new ArrayList<>(plant(plant));
-        if (plant.genome().isPresent()) {
-            lines.add(legend());
-        }
-        return lines;
-    }
-
-    /** The genome of a seed: every chromosome with both alleles, the expressed one first. */
-    public static List<Component> genome(Individual genome) {
-        List<Component> lines = new ArrayList<>();
-        FarmingEvolution.BREEDING.restore(genome, replaced -> { }).genome()
-                .forEach((type, chromosome) -> lines.add(chromosome(type, chromosome)));
-        return lines;
-    }
-
-    /** The genome of a seed as its tooltip shows it: the lines of {@link #genome}, then the {@link #legend}. */
-    public static List<Component> seed(Individual genome) {
-        List<Component> lines = genome(genome);
-        lines.add(legend());
-        return lines;
+        return plant(plant);
     }
 
     /**
-     * What the two values of {@code species: fiber_flax | wild_flax} or {@code fiber_strength:
-     * 7 | 4} are (issue #105): two alleles, one from each parent, the expressed one on the left.
-     * The words stand where the values stand and wear their colours: {@code expressed} in the
-     * colour of the expressed allele, {@code carried} in that of the carried one. The goggles
-     * (seed tooltip, plant panel), the seed store and the analyzer show this same line.
+     * The genome of a seed as its tooltip shows it: the expressed value of every chromosome, the
+     * species first. The carried allele is not shown (issue #121): the first hour sees what a
+     * plant expresses, the carried allele is for the microscope of the laboratory.
      */
-    public static Component legend() {
-        return text("legend", "alleles: %s | %s, one from each parent",
-                text("expressed", "expressed").withStyle(EXPRESSED),
-                text("carried", "carried").withStyle(CARRIED)).withStyle(LABEL);
+    public static List<Component> seed(Individual genome) {
+        return expressed(FarmingEvolution.BREEDING.restore(genome, replaced -> { }));
+    }
+
+    /** One line per chromosome of a restored genome, the species first: {@code fiber_strength: 7}. */
+    private static List<Component> expressed(Individual genome) {
+        List<Component> lines = new ArrayList<>();
+        Chromosome species = genome.genome().get(Breeding.SPECIES);
+        if (species != null) {
+            lines.add(expressed(Breeding.SPECIES, species));
+        }
+        genome.genome().forEach((type, chromosome) -> {
+            if (!type.equals(Breeding.SPECIES)) {
+                lines.add(expressed(type, chromosome));
+            }
+        });
+        return lines;
+    }
+
+    /** One chromosome by its expressed allele alone: {@code species: fiber_flax}. */
+    private static Component expressed(String type, Chromosome chromosome) {
+        return text("expressed_chromosome", "%s: %s", chromosomeName(type), allele(chromosome.active(), true))
+                .withStyle(LABEL);
+    }
+
+    /** The climate panel of the HUD: its header, then the lines of {@link #climate}. */
+    public static List<Component> climatePanel(Climate climate) {
+        List<Component> lines = new ArrayList<>();
+        lines.add(text("climate_header", "Climate here").withStyle(HEADER));
+        lines.addAll(climate(climate));
+        return lines;
     }
 
     /** The climate of a place: temperature and humidity, one decimal each. */
@@ -113,12 +117,6 @@ public final class Readout {
         return List.of(
                 text("temperature", "temperature: %s °C", value(number(climate.temperature()))).withStyle(LABEL),
                 text("humidity", "humidity: %s %%", value(number(climate.humidity()))).withStyle(LABEL));
-    }
-
-    /** One chromosome: {@code species: fiber_flax | fiber_flax}. */
-    static Component chromosome(String type, Chromosome chromosome) {
-        return text("chromosome", "%s: %s | %s", chromosomeName(type), allele(chromosome.active(), true),
-                allele(chromosome.inactive(), false)).withStyle(LABEL);
     }
 
     /** The name of a chromosome, translated where the language file names it. */
